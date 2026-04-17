@@ -470,16 +470,20 @@ def _fetch_uncached(ticker: str) -> dict | None:
     # ── 2. Historická data ───────────────────────────────────────────────────
     closes = None
     hist = None
-    try:
-        hist = tk.history(period="4y")
-        if not hist.empty:
-            closes = hist["Close"]
-            if closes.index.tz is not None:
-                closes.index = closes.index.tz_localize(None)
-        else:
-            logger.warning("Empty history for %s", ticker)
-    except Exception as exc:
-        logger.warning("history failed for %s: %s", ticker, exc)
+    for _period in ("4y", "2y", "1y", "6mo"):
+        try:
+            hist = tk.history(period=_period, auto_adjust=True)
+            if not hist.empty:
+                closes = hist["Close"].copy()
+                if closes.index.tz is not None:
+                    closes.index = closes.index.tz_convert("UTC").tz_localize(None)
+                logger.info("History OK for %s: %d rows (period=%s)", ticker, len(closes), _period)
+                break
+            logger.warning("Empty history for %s (period=%s)", ticker, _period)
+        except Exception as exc:
+            logger.warning("history failed for %s (period=%s): %s", ticker, _period, exc)
+    else:
+        logger.error("All history attempts failed for %s", ticker)
 
     def price_n_days_ago(n: int) -> float | None:
         if closes is None:
