@@ -286,7 +286,24 @@ td { padding: 0.7rem 0.85rem; vertical-align: middle; }
   letter-spacing: 0.03em;
   white-space: nowrap;
   width: 52px;
+  /* sticky first column */
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface);
 }
+tbody tr:hover .ticker-cell { background: var(--surface2); }
+
+/* sticky header cell for ticker column */
+thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface2);
+}
+
+/* fund-row (expanded fundamentals) musí mít vyšší z-index aby překryl sticky */
+.fund-row td { z-index: 1; }
 
 /* Sloučený sloupec Sig. (Doporučení + Cíl anal.) */
 .col-sig-h {
