@@ -1,0 +1,5 @@
+flask>=3.0.0
+yfinance>=0.2.40
+firebase-admin>=6.5.0
+gunicorn>=21.2.0
+python-dotenv>=1.0.0

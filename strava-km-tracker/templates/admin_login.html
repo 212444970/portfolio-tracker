@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🚴 Admin Login</h1>
+  </header>
+  <div class="connect-box">
+    <form method="post" class="login-form">
+      {% if error %}<p class="error-msg">{{ error }}</p>{% endif %}
+      <input type="password" name="password" placeholder="Admin password" autofocus />
+      <button class="btn btn-strava" type="submit">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>

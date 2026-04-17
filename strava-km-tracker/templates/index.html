@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bike KM Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🚴 Bike KM Tracker</h1>
+  </header>
+
+  {% if not connected %}
+  <div class="connect-box">
+    <h2>Stats not available yet</h2>
+    <p>The owner hasn't connected their Strava account.</p>
+  </div>
+
+  {% else %}
+  <section class="stats-grid">
+    <div class="stat-card accent">
+      <span class="stat-label">Total km</span>
+      <span class="stat-value">{{ stats.total }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">This year</span>
+      <span class="stat-value">{{ stats.this_year }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">This month</span>
+      <span class="stat-value">{{ stats.this_month }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">This week</span>
+      <span class="stat-value">{{ stats.this_week }}</span>
+    </div>
+    <div class="stat-card muted">
+      <span class="stat-label">Total rides</span>
+      <span class="stat-value">{{ stats.ride_count }}</span>
+    </div>
+  </section>
+
+  <section class="rides-section">
+    <h2>Recent rides</h2>
+    {% if rides %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Distance</th>
+          <th>Duration</th>
+          <th>Elevation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rides %}
+        <tr>
+          <td class="date">{{ r.date }}</td>
+          <td>{{ r.name }}</td>
+          <td class="type">{{ r.type }}</td>
+          <td class="num">{{ r.km }} km</td>
+          <td class="num">{{ r.duration }}</td>
+          <td class="num">{{ r.elevation }} m</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No rides found yet.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: portfolio-tracker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: APP_PASSWORD
+        sync: false
+      - key: FIREBASE_CREDENTIALS
+        sync: false

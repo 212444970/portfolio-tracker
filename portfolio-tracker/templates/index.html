@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>Portfolio Tracker</h1>
+        <p class="subtitle">Akcie &amp; ETF — výkonnost v reálném čase</p>
+      </div>
+      <a href="/logout" class="btn-logout">Odhlásit</a>
+    </div>
+  </header>
+
+  <!-- ── Summary cards (CZK) ── -->
+  {% if total %}
+  <section class="summary">
+    <h2 class="section-label">Portfolio · CZK</h2>
+    <div class="cards">
+      {% macro breakdown(metric_key) %}
+        {% if total.by_cur | length > 1 %}
+        <div class="card-breakdown">
+          {% for cur, bc in total.by_cur.items() %}
+          {% set val = bc[metric_key] %}
+          {% set pct = bc[metric_key ~ '_pct'] %}
+          {% if val != 0 %}
+          <div class="bc-row">
+            <span class="bc-cur">{{ cur }}</span>
+            <span class="bc-val {{ 'pos' if val >= 0 else 'neg' }}">{{ val|czk_signed }} Kč</span>
+            <span class="bc-pct">{{ pct }}%</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endmacro %}
+
+      <div class="card">
+        <span class="card-label">Celková hodnota</span>
+        <span class="card-value">{{ total.value|czk }} Kč</span>
+        {% if total.by_cur | length > 1 %}
+        <div class="card-breakdown">
+          {% for cur, bc in total.by_cur.items() %}
+          <div class="bc-row">
+            <span class="bc-cur">{{ cur }}</span>
+            <span class="bc-val">{{ bc.value|czk }} Kč</span>
+            <span class="bc-pct">{{ bc.value_pct }}%</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card {{ 'pos' if total.total_gain >= 0 else 'neg' }}">
+        <span class="card-label">Celkový zisk/ztráta</span>
+        <span class="card-value">
+          {{ total.total_gain|czk_signed }} Kč
+          <small>({{ "%+.2f"|format(total.total_gain_pct) }}%)</small>
+        </span>
+        {% if total.by_cur | length > 1 %}
+        <div class="card-breakdown">
+          {% for cur, bc in total.by_cur.items() %}
+          {% if bc.total_gain != 0 %}
+          <div class="bc-row">
+            <span class="bc-cur">{{ cur }}</span>
+            <span class="bc-val {{ 'pos' if bc.total_gain >= 0 else 'neg' }}">{{ bc.total_gain|czk_signed }} Kč</span>
+            <span class="bc-pct">{{ bc.total_gain_pct }}%</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card {{ 'pos' if total.gain_24h_czk >= 0 else 'neg' }}">
+        <span class="card-label">24 hodin</span>
+        <span class="card-value">{{ total.gain_24h_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_24h_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_7d_czk >= 0 else 'neg' }}">
+        <span class="card-label">7 dní</span>
+        <span class="card-value">{{ total.gain_7d_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_7d_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_30d_czk >= 0 else 'neg' }}">
+        <span class="card-label">30 dní</span>
+        <span class="card-value">{{ total.gain_30d_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_30d_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_6m_czk >= 0 else 'neg' }}">
+        <span class="card-label">6 měsíců</span>
+        <span class="card-value">{{ total.gain_6m_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_6m_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_1y_czk >= 0 else 'neg' }}">
+        <span class="card-label">1 rok</span>
+        <span class="card-value">{{ total.gain_1y_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_1y_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_3y_czk >= 0 else 'neg' }}">
+        <span class="card-label">3 roky</span>
+        <span class="card-value">{{ total.gain_3y_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_3y_czk') }}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Add form ── -->
+  <section class="add-form">
+    <h2>Přidat pozici</h2>
+    <form method="POST" action="/add" id="add-form">
+
+      <!-- Type toggle -->
+      <div class="type-toggle">
+        <label class="type-btn active" id="lbl-own">
+          <input type="radio" name="position_type" value="own" checked>
+          <span>Vlastním</span>
+        </label>
+        <label class="type-btn" id="lbl-watch">
+          <input type="radio" name="position_type" value="watch">
+          <span>Sleduji</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <!-- Ticker autocomplete -->
+        <div class="field ac-wrap">
+          <label for="ticker-input">Ticker / název</label>
+          <input id="ticker-input" type="text" placeholder="AAPL, Apple, ČEZ…" autocomplete="off">
+          <input id="ticker" name="ticker" type="hidden" required>
+          <ul id="ac-list" class="ac-list" role="listbox" hidden></ul>
+        </div>
+
+        <div class="field" id="selected-name-field" style="display:none">
+          <label>Vybraný titul</label>
+          <div id="selected-name" class="selected-badge"></div>
+        </div>
+
+        <!-- Own-only fields -->
+        <div class="field own-field">
+          <label for="shares">Počet akcií / podílů</label>
+          <input id="shares" name="shares" type="number" step="0.0001" min="0.0001" placeholder="10">
+        </div>
+
+        <div class="field own-field">
+          <label for="buy_price">Nákupní cena (za kus)</label>
+          <div class="price-group">
+            <input id="buy_price" name="buy_price" type="number" step="0.01" min="0.01" placeholder="—">
+            <select id="buy_currency" name="buy_currency">
+              <option value="CZK">CZK</option>
+              <option value="EUR">EUR</option>
+              <option value="USD" selected>USD</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-add">Přidat</button>
+      </div>
+    </form>
+  </section>
+
+  {# ── Makro: buňka ukazatele jako badge ── #}
+  {% macro sig_badge_cell(fund, key) %}
+  {% if fund %}{% set sig = fund.signals_map.get(key) %}
+  {% if sig %}
+  <td data-val="{{ sig.raw }}" class="col-ind" style="text-align:center" title="{{ sig.note }}: {{ sig.value }}">
+    <span class="rec-badge rec-{{ 'buy' if sig.pts > 0 else ('sell' if sig.pts < 0 else 'hold') }}">{{ sig.short }}</span>
+  </td>
+  {% else %}
+  <td data-val="" class="col-ind" style="text-align:center"><span class="rec-badge rec-neutral">—</span></td>
+  {% endif %}
+  {% else %}
+  <td data-val="" class="col-ind" style="text-align:center"><span class="rec-badge rec-neutral">—</span></td>
+  {% endif %}
+  {% endmacro %}
+
+  {# ── Makro: buňka ukazatele jako číslo ── #}
+  {% macro sig_cell(fund, key) %}
+  {% if fund %}{% set sig = fund.signals_map.get(key) %}
+  {% if sig %}
+  <td data-val="{{ sig.raw }}" class="num col-ind {{ 'pos' if sig.pts > 0 else ('neg' if sig.pts < 0 else 'muted') }}" title="{{ sig.note }}">{{ sig.short }}</td>
+  {% else %}
+  <td data-val="" class="num col-ind muted">—</td>
+  {% endif %}
+  {% else %}
+  <td data-val="" class="num col-ind muted">—</td>
+  {% endif %}
+  {% endmacro %}
+
+  <!-- ── Own positions ── -->
+  {% if own %}
+  <section class="positions">
+    <h2 class="section-label">Vlastním</h2>
+    <div class="table-wrap">
+      <table id="own-table">
+        <thead>
+          <tr>
+            <th data-sort="0" class="sortable">Ticker</th>
+            <th data-sort="1" class="sortable col-name">Název</th>
+            <th data-sort="2" class="sortable num-h col-compact">Počet</th>
+            <th data-sort="3" class="sortable num-h col-compact">Nák. cena</th>
+            <th data-sort="4" class="sortable num-h col-compact">Akt. cena</th>
+            <th data-sort="5" class="sortable num-h">Hodnota (Kč)</th>
+            <th data-sort="6" class="sortable num-h col-highlight-h">Celk. zisk</th>
+            <th data-sort="7" class="sortable num-h">24 h</th>
+            <th data-sort="8" class="sortable num-h">7 dní</th>
+            <th data-sort="9" class="sortable num-h">30 dní</th>
+            <th data-sort="10" class="sortable num-h">6 měs.</th>
+            <th data-sort="11" class="sortable num-h">1 rok</th>
+            <th data-sort="12" class="sortable num-h">3 roky</th>
+            <th data-sort="13" class="sortable col-sig-h">Sig.</th>
+            <th data-sort="14" class="sortable num-h col-ind-h" title="Relative Strength Index (14 dní) — technický indikátor">RSI</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in own %}
+          <tr class="{{ 'error-row' if p.error }}" data-fund-id="fund-{{ p.id }}">
+            <td class="ticker-cell" data-val="{{ p.ticker }}">{{ p.ticker }}</td>
+            {% if p.error %}
+            <td colspan="14" class="error-msg" data-val="">Nepodařilo se načíst data</td>
+            {% else %}
+            <td data-val="{{ p.name }}" class="col-name">{{ p.name }}</td>
+            <td data-val="{{ p.shares }}" class="num col-compact">{{ "%.0f"|format(p.shares) }}</td>
+            <td data-val="{{ p.cost_basis_czk }}" class="num col-compact">
+              {{ "%.2f"|format(p.buy_price) }}<br>
+              <small class="muted">{{ p.buy_currency }}{% if p.buy_currency != p.currency %} → Kč {{ "%.0f"|format(p.buy_to_czk) }}{% endif %}</small>
+            </td>
+            <td data-val="{{ p.current_price }}" class="num col-compact">
+              {{ "%.2f"|format(p.current_price) }}<br>
+              <small class="muted">{{ p.currency }}</small>
+            </td>
+            <td data-val="{{ p.current_value_czk }}" class="num bold">
+              {{ p.current_value_czk|czk }} Kč
+              <small class="muted">{{ "%.2f"|format(p.current_value) }} {{ p.currency }}</small>
+            </td>
+            <td data-val="{{ p.total_gain_czk }}" class="num col-highlight {{ 'pos' if p.total_gain_czk >= 0 else 'neg' }}">
+              {{ p.total_gain_czk|czk_signed }} Kč<br>
+              <small>({{ "%+.2f"|format(p.total_gain_czk_pct) }}%)</small>
+            </td>
+            {% for gain_key, pct_key in [
+              ('gain_24h_czk','pct_24h'),('gain_7d_czk','pct_7d'),
+              ('gain_30d_czk','pct_30d'),('gain_6m_czk','pct_6m'),
+              ('gain_1y_czk','pct_1y'),('gain_3y_czk','pct_3y')
+            ] %}
+            {% set g = p.get(gain_key) %}
+            <td data-val="{{ g if g is not none else '' }}" class="num {{ 'pos' if (g or 0) >= 0 else 'neg' }}">
+              {% if g is not none %}
+                {{ g|czk_signed }} Kč<br>
+                <small>({{ p.get(pct_key)|pct }})</small>
+              {% else %}—{% endif %}
+            </td>
+            {% endfor %}
+            {% set f = p.fundamentals %}
+            <td data-val="{{ f.score if f else '' }}" class="col-sig" onclick="toggleFund('{{ p.id }}')">
+              {% if f %}
+              {% set cil = f.signals_map.get('Cíl analytiků') %}
+              <span class="rec-badge rec-{{ f.rec_class if f.recommendation != 'N/A' else 'neutral' }}">{{ f.recommendation }}</span>
+              {% if cil %}<br><span class="rec-badge rec-{{ 'buy' if cil.pts > 0 else ('sell' if cil.pts < 0 else 'hold') }}" title="{{ cil.value }}">{{ cil.short }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            {{ sig_cell(f, 'RSI 14d') }}
+            {% endif %}
+            <td data-val="">
+              <form method="POST" action="/delete/{{ p.id }}" onsubmit="return confirm('Smazat {{ p.ticker }}?')">
+                <button type="submit" class="btn-del" title="Smazat">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% if not p.error and p.fundamentals %}
+          {% set f = p.fundamentals %}
+          <tr class="fund-row" id="fund-{{ p.id }}">
+            <td colspan="16">
+              <div class="fund-inner">
+                <div class="fund-header">
+                  <span class="fund-title">Fundamentální analýza · {{ p.ticker }}</span>
+                  <span class="rec-badge rec-{{ f.rec_class }}">{{ f.recommendation }}</span>
+                  <span class="fund-score-chip">Skóre: {{ f.score }} · {{ f.n_signals }} ukazatelů</span>
+                  <span class="fund-disclaimer">Pouze informativní, není investiční poradenství</span>
+                </div>
+                <div class="fund-grid">
+                  {% for sig in f.signals %}
+                  <div class="fund-card {{ 'f-pos' if sig.pts > 0 else ('f-neg' if sig.pts < 0 else 'f-neu') }}">
+                    <div class="fund-card-name">{{ sig.name }}</div>
+                    <div class="fund-card-val">{{ sig.value }}</div>
+                    <div class="fund-card-note">{{ sig.note }}</div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Watch list ── -->
+  {% if watch %}
+  <section class="positions watch-section">
+    <h2 class="section-label">Sleduji</h2>
+    <div class="table-wrap">
+      <table id="watch-table">
+        <thead>
+          <tr>
+            <th data-sort="0" class="sortable">Ticker</th>
+            <th data-sort="1" class="sortable col-name">Název</th>
+            <th data-sort="2" class="sortable num-h">Akt. cena</th>
+            <th data-sort="3" class="sortable num-h">24 h</th>
+            <th data-sort="4" class="sortable num-h">7 dní</th>
+            <th data-sort="5" class="sortable num-h">30 dní</th>
+            <th data-sort="6" class="sortable num-h">6 měs.</th>
+            <th data-sort="7" class="sortable num-h">1 rok</th>
+            <th data-sort="8" class="sortable num-h">3 roky</th>
+            <th data-sort="9" class="sortable col-sig-h">Sig.</th>
+            <th data-sort="10" class="sortable num-h col-ind-h" title="RSI 14 dní">RSI</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in watch %}
+          <tr class="{{ 'error-row' if p.error }}">
+            <td class="ticker-cell" data-val="{{ p.ticker }}">{{ p.ticker }}</td>
+            {% if p.error %}
+            <td colspan="10" class="error-msg" data-val="">Nepodařilo se načíst data</td>
+            {% else %}
+            <td data-val="{{ p.name }}" class="col-name">{{ p.name }}</td>
+            <td data-val="{{ p.current_price }}" class="num col-compact">
+              {{ "%.2f"|format(p.current_price) }}<br>
+              <small class="muted">{{ p.currency }}</small>
+            </td>
+            {% for k in ['pct_24h','pct_7d','pct_30d','pct_6m','pct_1y','pct_3y'] %}
+            {% set v = p.get(k) %}
+            <td data-val="{{ v if v is not none else '' }}" class="num {{ 'pos' if (v or 0) >= 0 else 'neg' }}">
+              {{ v|pct }}
+            </td>
+            {% endfor %}
+            {% set f = p.fundamentals %}
+            <td data-val="{{ f.score if f else '' }}" class="col-sig" onclick="toggleFund('{{ p.id }}')">
+              {% if f %}
+              {% set cil = f.signals_map.get('Cíl analytiků') %}
+              <span class="rec-badge rec-{{ f.rec_class if f.recommendation != 'N/A' else 'neutral' }}">{{ f.recommendation }}</span>
+              {% if cil %}<br><span class="rec-badge rec-{{ 'buy' if cil.pts > 0 else ('sell' if cil.pts < 0 else 'hold') }}" title="{{ cil.value }}">{{ cil.short }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            {{ sig_cell(f, 'RSI 14d') }}
+            {% endif %}
+            <td data-val="">
+              <form method="POST" action="/delete/{{ p.id }}" onsubmit="return confirm('Smazat {{ p.ticker }}?')">
+                <button type="submit" class="btn-del" title="Smazat">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% if not p.error and p.fundamentals %}
+          {% set f = p.fundamentals %}
+          <tr class="fund-row" id="fund-{{ p.id }}">
+            <td colspan="12">
+              <div class="fund-inner">
+                <div class="fund-header">
+                  <span class="fund-title">Fundamentální analýza · {{ p.ticker }}</span>
+                  <span class="rec-badge rec-{{ f.rec_class }}">{{ f.recommendation }}</span>
+                  <span class="fund-score-chip">Skóre: {{ f.score }} · {{ f.n_signals }} ukazatelů</span>
+                  <span class="fund-disclaimer">Pouze informativní, není investiční poradenství</span>
+                </div>
+                <div class="fund-grid">
+                  {% for sig in f.signals %}
+                  <div class="fund-card {{ 'f-pos' if sig.pts > 0 else ('f-neg' if sig.pts < 0 else 'f-neu') }}">
+                    <div class="fund-card-name">{{ sig.name }}</div>
+                    <div class="fund-card-val">{{ sig.value }}</div>
+                    <div class="fund-card-note">{{ sig.note }}</div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not own and not watch %}
+  <p class="empty">Zatím žádné pozice. Přidejte první titul výše.</p>
+  {% endif %}
+
+  <footer>
+    Data: Yahoo Finance · kurzy FX se aktualizují každou hodinu · obnovte stránku pro aktuální ceny
+  </footer>
+</div>
+
+<script>
+(function () {
+  const input     = document.getElementById('ticker-input');
+  const hidden    = document.getElementById('ticker');
+  const list      = document.getElementById('ac-list');
+  const badge     = document.getElementById('selected-name');
+  const badgeWrap = document.getElementById('selected-name-field');
+  const priceEl   = document.getElementById('buy_price');
+  const curSel    = document.getElementById('buy_currency');
+  const ownFields = document.querySelectorAll('.own-field');
+  const radios    = document.querySelectorAll('input[name="position_type"]');
+  const lblOwn    = document.getElementById('lbl-own');
+  const lblWatch  = document.getElementById('lbl-watch');
+
+  let results = [];
+  let cursor  = -1;
+  let debounce;
+
+  // ── Type toggle ──
+  radios.forEach(r => r.addEventListener('change', updateMode));
+  function updateMode() {
+    const isOwn = document.querySelector('input[name="position_type"]:checked').value === 'own';
+    ownFields.forEach(f => f.style.display = isOwn ? '' : 'none');
+    // toggle active class
+    lblOwn.classList.toggle('active', isOwn);
+    lblWatch.classList.toggle('active', !isOwn);
+    // required attributes
+    document.getElementById('shares').required = isOwn;
+    document.getElementById('buy_price').required = isOwn;
+  }
+  updateMode();
+
+  // ── Autocomplete ──
+  function renderList(items) {
+    results = items;
+    cursor = -1;
+    list.innerHTML = '';
+    if (!items.length) { list.hidden = true; return; }
+    items.forEach((it, i) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.dataset.idx = i;
+      li.innerHTML =
+        `<span class="ac-symbol">${it.symbol}</span>` +
+        `<span class="ac-name">${it.name}</span>` +
+        `<span class="ac-meta">${it.exchange}</span>` +
+        `<span class="ac-type">${it.type}</span>` +
+        `<span class="ac-price" data-sym="${it.symbol}">…</span>`;
+      li.addEventListener('mousedown', e => { e.preventDefault(); selectItem(i); });
+      list.appendChild(li);
+    });
+    list.hidden = false;
+
+    // Lazy-load prices for visible items
+    const symbols = items.map(it => it.symbol).join(',');
+    fetch(`/prices?symbols=${encodeURIComponent(symbols)}`)
+      .then(r => r.json())
+      .then(prices => {
+        list.querySelectorAll('.ac-price[data-sym]').forEach(el => {
+          const d = prices[el.dataset.sym];
+          el.textContent = d ? `${d.price.toFixed(2)} ${d.currency}` : '';
+        });
+      })
+      .catch(() => {
+        list.querySelectorAll('.ac-price').forEach(el => el.textContent = '');
+      });
+  }
+
+  function selectItem(i) {
+    const it = results[i];
+    if (!it) return;
+    hidden.value = it.symbol;
+    input.value  = it.symbol;
+    badge.textContent = `${it.symbol} — ${it.name}`;
+    badgeWrap.style.display = '';
+    list.hidden = true;
+    results = [];
+
+    fetch(`/price/${encodeURIComponent(it.symbol)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || !d.price) return;
+        if (priceEl) priceEl.value = d.price.toFixed(2);
+        const opt = curSel.querySelector(`option[value="${d.currency}"]`);
+        if (opt) curSel.value = d.currency;
+      })
+      .catch(() => {});
+    if (document.querySelector('input[name="position_type"]:checked').value === 'own') {
+      document.getElementById('shares').focus();
+    }
+  }
+
+  function moveCursor(dir) {
+    const items = list.querySelectorAll('li');
+    if (!items.length) return;
+    items[cursor]?.classList.remove('ac-active');
+    cursor = (cursor + dir + items.length) % items.length;
+    items[cursor].classList.add('ac-active');
+    items[cursor].scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    hidden.value = '';
+    badgeWrap.style.display = 'none';
+    if (q.length < 1) { list.hidden = true; return; }
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      fetch(`/search?q=${encodeURIComponent(q)}`)
+        .then(r => r.json()).then(renderList).catch(() => renderList([]));
+    }, 280);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown')  { e.preventDefault(); moveCursor(+1); }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); moveCursor(-1); }
+    if (e.key === 'Enter')      { e.preventDefault(); if (cursor >= 0) selectItem(cursor); }
+    if (e.key === 'Escape')     { list.hidden = true; }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ac-wrap')) list.hidden = true;
+  });
+
+  document.getElementById('add-form').addEventListener('submit', e => {
+    if (!hidden.value) {
+      e.preventDefault();
+      input.focus();
+      input.style.borderColor = 'var(--neg)';
+      setTimeout(() => input.style.borderColor = '', 1500);
+    }
+  });
+})();
+
+// ── Fundamentals toggle ──
+function toggleFund(id) {
+  const row = document.getElementById('fund-' + id);
+  if (!row) return;
+  row.classList.toggle('fund-open');
+}
+
+// ── Sortable tables ──
+(function () {
+  function initSortable(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const headers = table.querySelectorAll('th[data-sort]');
+    let sortCol = -1, sortAsc = true;
+
+    headers.forEach(th => {
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.sort);
+        if (sortCol === col) {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = col;
+          sortAsc = true;
+        }
+        headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+          const aVal = (a.querySelectorAll('td')[col]?.dataset.val ?? '').trim();
+          const bVal = (b.querySelectorAll('td')[col]?.dataset.val ?? '').trim();
+          // Empty values always go last
+          if (aVal === '' && bVal === '') return 0;
+          if (aVal === '') return 1;
+          if (bVal === '') return -1;
+          const aNum = parseFloat(aVal);
+          const bNum = parseFloat(bVal);
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            return sortAsc ? aNum - bNum : bNum - aNum;
+          }
+          return sortAsc
+            ? aVal.localeCompare(bVal, 'cs')
+            : bVal.localeCompare(aVal, 'cs');
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  }
+
+  initSortable('own-table');
+  initSortable('watch-table');
+})();
+</script>
+</body>
+</html>

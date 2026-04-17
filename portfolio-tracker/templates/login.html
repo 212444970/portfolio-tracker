@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Tracker · Přihlášení</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3250;
+      --text: #e2e8f0; --muted: #8b92b3; --accent: #6366f1;
+      --neg: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 2.5rem 2rem; width: 100%; max-width: 340px;
+    }
+    h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .sub { color: var(--muted); font-size: 0.82rem; margin-bottom: 1.8rem; }
+    label { display: block; font-size: 0.72rem; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+    input[type="password"] {
+      width: 100%; background: #222535; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); padding: 0.6rem 0.8rem;
+      font-size: 1rem; outline: none; transition: border-color 0.15s;
+    }
+    input[type="password"]:focus { border-color: var(--accent); }
+    .error { color: var(--neg); font-size: 0.8rem; margin-top: 0.5rem; }
+    button {
+      margin-top: 1.2rem; width: 100%; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; padding: 0.65rem; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    button:hover { background: #4f52d3; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Portfolio Tracker</h1>
+    <p class="sub">Zadejte heslo pro přístup</p>
+    <form method="POST">
+      <label for="pw">Heslo</label>
+      <input id="pw" name="password" type="password" autofocus autocomplete="current-password">
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <button type="submit">Přihlásit se</button>
+    </form>
+  </div>
+</body>
+</html>
