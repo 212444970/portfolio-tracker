@@ -649,6 +649,18 @@ def index():
 
         total["by_cur"] = dict(sorted(by_cur.items(), key=lambda x: -x[1]["value"]))
 
+        # ── Breakdown dle třídy aktiv ──
+        ASSET_LABELS = {
+            "EQUITY": "Akcie", "ETF": "ETF", "MUTUALFUND": "ETF",
+            "FUTURE": "Komodity", "INDEX": "Index",
+        }
+        by_type: dict[str, float] = {}
+        for p in valid_own:
+            label = ASSET_LABELS.get(p.get("quote_type", "EQUITY"), "Akcie")
+            by_type[label] = by_type.get(label, 0) + p["current_value_czk"]
+        total["by_type"] = dict(sorted(by_type.items(), key=lambda x: -x[1]))
+        total["by_type_pct"] = {k: safe_pct(v, total["value"]) for k, v in by_type.items()}
+
     return render_template("index.html", own=own, watch=watch, total=total)
 
 
@@ -675,6 +687,10 @@ def add_position():
         if buy_currency not in ("CZK", "EUR", "USD"):
             buy_currency = "USD"
 
+    quote_type = request.form.get("quote_type", "EQUITY").strip().upper()
+    if quote_type not in ("EQUITY", "ETF", "MUTUALFUND", "FUTURE", "INDEX"):
+        quote_type = "EQUITY"
+
     data = fetch_market_data(ticker)
     add_position_doc({
         "ticker": ticker,
@@ -684,6 +700,7 @@ def add_position():
         "buy_price": buy_price,
         "buy_currency": buy_currency,
         "currency": data["currency"] if data else "USD",
+        "quote_type": quote_type,
     })
     return redirect(url_for("index"))
 

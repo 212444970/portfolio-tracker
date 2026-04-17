@@ -22,7 +22,7 @@
   <!-- ── Summary cards (CZK) ── -->
   {% if total %}
   <section class="summary">
-    <h2 class="section-label">Portfolio · CZK</h2>
+    <h2 class="section-label">Portfolio celkem</h2>
     <div class="cards">
       {% macro breakdown(metric_key) %}
         {% if total.by_cur | length > 1 %}
@@ -57,6 +57,21 @@
         </div>
         {% endif %}
       </div>
+      {% if total.by_type | length > 1 %}
+      <div class="card">
+        <span class="card-label">Dle třídy aktiv</span>
+        <span class="card-value">{{ total.by_type | length }} třídy</span>
+        <div class="card-breakdown">
+          {% for label, val in total.by_type.items() %}
+          <div class="bc-row">
+            <span class="bc-cur" style="width:4.5rem;font-size:0.62rem">{{ label }}</span>
+            <span class="bc-val">{{ val|czk }} Kč</span>
+            <span class="bc-pct">{{ total.by_type_pct[label] }}%</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       <div class="card {{ 'pos' if total.total_gain >= 0 else 'neg' }}">
         <span class="card-label">Celkový zisk/ztráta</span>
         <span class="card-value">
@@ -134,6 +149,7 @@
           <label for="ticker-input">Ticker / název</label>
           <input id="ticker-input" type="text" placeholder="AAPL, Apple, ČEZ…" autocomplete="off">
           <input id="ticker" name="ticker" type="hidden" required>
+          <input id="quote_type" name="quote_type" type="hidden" value="EQUITY">
           <ul id="ac-list" class="ac-list" role="listbox" hidden></ul>
         </div>
 
@@ -196,7 +212,7 @@
   <!-- ── Own positions ── -->
   {% if own %}
   <section class="positions">
-    <h2 class="section-label">Vlastním</h2>
+    <h2 class="section-label">Portfolio detail</h2>
     <div class="table-wrap">
       <table id="own-table">
         <thead>
@@ -483,6 +499,7 @@
     if (!it) return;
     hidden.value = it.symbol;
     input.value  = it.symbol;
+    document.getElementById('quote_type').value = it.type || 'EQUITY';
     badge.textContent = `${it.symbol} — ${it.name}`;
     badgeWrap.style.display = '';
     list.hidden = true;

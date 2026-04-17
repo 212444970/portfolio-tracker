@@ -321,15 +321,13 @@ tbody tr:hover .col-highlight {
 }
 /* Compact columns: Počet, Nák. cena, Akt. cena */
 td.col-compact, th.col-compact {
-  padding-left: 0.3rem;
-  padding-right: 0.3rem;
-  font-size: 0.72rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  font-size: 0.71rem;
   color: var(--muted);
-  width: 62px;
-  max-width: 62px;
+  width: 82px;
+  min-width: 72px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 /* Název — nechej trochu víc místa */
 th.col-name, td.col-name {
