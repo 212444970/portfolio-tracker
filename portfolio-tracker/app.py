@@ -510,7 +510,7 @@ def _fetch_uncached(ticker: str) -> dict | None:
         "price_1y":  price_n_days_ago(365),
         "price_3y":  price_n_days_ago(3 * 365),
         "price_5y":  price_n_days_ago(5 * 365),
-        "fundamentals": compute_recommendation(info, hist) if info else None,
+        "fundamentals": compute_recommendation(info, hist),
     }
 
 
