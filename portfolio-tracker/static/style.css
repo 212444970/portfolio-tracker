@@ -353,6 +353,10 @@ td.col-ind {
   white-space: nowrap;
 }
 
+/* Gain / loss cells — slightly smaller to fit ±CZK + pct */
+td.gain-cell { font-size: 0.76rem; }
+td.gain-cell small { font-size: 0.67rem; opacity: 0.75; }
+
 .error-row td { color: var(--muted); }
 .error-msg { color: var(--neg); font-style: italic; }
 
