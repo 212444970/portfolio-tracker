@@ -126,61 +126,6 @@
   </section>
   {% endif %}
 
-  <!-- ── Add form ── -->
-  <section class="add-form">
-    <h2>Přidat pozici</h2>
-    <form method="POST" action="/add" id="add-form">
-
-      <!-- Type toggle -->
-      <div class="type-toggle">
-        <label class="type-btn active" id="lbl-own">
-          <input type="radio" name="position_type" value="own" checked>
-          <span>Vlastním</span>
-        </label>
-        <label class="type-btn" id="lbl-watch">
-          <input type="radio" name="position_type" value="watch">
-          <span>Sleduji</span>
-        </label>
-      </div>
-
-      <div class="form-row">
-        <!-- Ticker autocomplete -->
-        <div class="field ac-wrap">
-          <label for="ticker-input">Ticker / název</label>
-          <input id="ticker-input" type="text" placeholder="AAPL, Apple, ČEZ…" autocomplete="off">
-          <input id="ticker" name="ticker" type="hidden" required>
-          <input id="quote_type" name="quote_type" type="hidden" value="EQUITY">
-          <ul id="ac-list" class="ac-list" role="listbox" hidden></ul>
-        </div>
-
-        <div class="field" id="selected-name-field" style="display:none">
-          <label>Vybraný titul</label>
-          <div id="selected-name" class="selected-badge"></div>
-        </div>
-
-        <!-- Own-only fields -->
-        <div class="field own-field">
-          <label for="shares">Počet akcií / podílů</label>
-          <input id="shares" name="shares" type="number" step="0.0001" min="0.0001" placeholder="10">
-        </div>
-
-        <div class="field own-field">
-          <label for="buy_price">Nákupní cena (za kus)</label>
-          <div class="price-group">
-            <input id="buy_price" name="buy_price" type="number" step="0.01" min="0.01" placeholder="—">
-            <select id="buy_currency" name="buy_currency">
-              <option value="CZK">CZK</option>
-              <option value="EUR">EUR</option>
-              <option value="USD" selected>USD</option>
-            </select>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-add">Přidat</button>
-      </div>
-    </form>
-  </section>
-
   {# ── Makro: buňka ukazatele jako badge ── #}
   {% macro sig_badge_cell(fund, key) %}
   {% if fund %}{% set sig = fund.signals_map.get(key) %}
@@ -418,8 +363,63 @@
   {% endif %}
 
   {% if not own and not watch %}
-  <p class="empty">Zatím žádné pozice. Přidejte první titul výše.</p>
+  <p class="empty">Zatím žádné pozice. Přidejte první titul níže.</p>
   {% endif %}
+
+  <!-- ── Add form ── -->
+  <section class="add-form">
+    <h2>Přidat pozici</h2>
+    <form method="POST" action="/add" id="add-form">
+
+      <!-- Type toggle -->
+      <div class="type-toggle">
+        <label class="type-btn active" id="lbl-own">
+          <input type="radio" name="position_type" value="own" checked>
+          <span>Vlastním</span>
+        </label>
+        <label class="type-btn" id="lbl-watch">
+          <input type="radio" name="position_type" value="watch">
+          <span>Sleduji</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <!-- Ticker autocomplete -->
+        <div class="field ac-wrap">
+          <label for="ticker-input">Ticker / název</label>
+          <input id="ticker-input" type="text" placeholder="AAPL, Apple, ČEZ…" autocomplete="off">
+          <input id="ticker" name="ticker" type="hidden" required>
+          <input id="quote_type" name="quote_type" type="hidden" value="EQUITY">
+          <ul id="ac-list" class="ac-list" role="listbox" hidden></ul>
+        </div>
+
+        <div class="field" id="selected-name-field" style="display:none">
+          <label>Vybraný titul</label>
+          <div id="selected-name" class="selected-badge"></div>
+        </div>
+
+        <!-- Own-only fields -->
+        <div class="field own-field">
+          <label for="shares">Počet akcií / podílů</label>
+          <input id="shares" name="shares" type="number" step="0.0001" min="0.0001" placeholder="10">
+        </div>
+
+        <div class="field own-field">
+          <label for="buy_price">Nákupní cena (za kus)</label>
+          <div class="price-group">
+            <input id="buy_price" name="buy_price" type="number" step="0.01" min="0.01" placeholder="—">
+            <select id="buy_currency" name="buy_currency">
+              <option value="CZK">CZK</option>
+              <option value="EUR">EUR</option>
+              <option value="USD" selected>USD</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-add">Přidat</button>
+      </div>
+    </form>
+  </section>
 
   <footer>
     Data: Yahoo Finance · kurzy FX se aktualizují každou hodinu · obnovte stránku pro aktuální ceny
