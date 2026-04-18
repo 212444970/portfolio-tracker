@@ -195,6 +195,28 @@ def add_position_doc(data: dict) -> None:
             """, data)
 
 
+def update_position_doc(doc_id: str, shares: float, buy_price: float) -> None:
+    if USE_FIREBASE:
+        _fs.collection(COLL).document(doc_id).update({
+            "shares": shares,
+            "buy_price": buy_price,
+        })
+    else:
+        with _sqlite_conn() as conn:
+            conn.execute(
+                "UPDATE positions SET shares=?, buy_price=? WHERE id=?",
+                (shares, buy_price, doc_id),
+            )
+
+
+def find_existing_own(ticker: str) -> dict | None:
+    """Vrátí první 'own' pozici se shodným tickerem, nebo None."""
+    for p in get_positions():
+        if p["ticker"] == ticker and p.get("position_type", "own") == "own":
+            return p
+    return None
+
+
 def delete_position_doc(doc_id: str) -> None:
     if USE_FIREBASE:
         _fs.collection(COLL).document(doc_id).delete()
@@ -662,7 +684,7 @@ def index():
         # ── Breakdown dle třídy aktiv ──
         ASSET_LABELS = {
             "EQUITY": "Akcie", "ETF": "ETF", "MUTUALFUND": "ETF",
-            "FUTURE": "Komodity", "INDEX": "Index",
+            "FUTURE": "Komodity", "INDEX": "Index", "CRYPTOCURRENCY": "Krypto",
         }
         by_type: dict[str, float] = {}
         for p in valid_own:
@@ -698,10 +720,30 @@ def add_position():
             buy_currency = "USD"
 
     quote_type = request.form.get("quote_type", "EQUITY").strip().upper()
-    if quote_type not in ("EQUITY", "ETF", "MUTUALFUND", "FUTURE", "INDEX"):
+    if quote_type not in ("EQUITY", "ETF", "MUTUALFUND", "FUTURE", "INDEX", "CRYPTOCURRENCY"):
         quote_type = "EQUITY"
 
     data = fetch_market_data(ticker)
+
+    # ── Agregace: pokud stejný ticker (own) už existuje, přepočítej vážený průměr ──
+    if position_type == "own":
+        existing = find_existing_own(ticker)
+        if existing:
+            old_shares = existing.get("shares", 0) or 0
+            old_price  = existing.get("buy_price", 0) or 0
+            old_cur    = existing.get("buy_currency", buy_currency)
+            # Sjednotit měnu: pokud se liší, převést nový nákup na měnu existující pozice
+            if old_cur != buy_currency:
+                rate_old = get_fx_rate(old_cur)
+                rate_new = get_fx_rate(buy_currency)
+                buy_price_conv = buy_price * rate_new / rate_old if rate_old else buy_price
+            else:
+                buy_price_conv = buy_price
+            total_shares = old_shares + shares
+            avg_price = (old_price * old_shares + buy_price_conv * shares) / total_shares if total_shares else 0
+            update_position_doc(existing["id"], round(total_shares, 6), round(avg_price, 6))
+            return redirect(url_for("index"))
+
     add_position_doc({
         "ticker": ticker,
         "name": data["name"] if data else ticker,
@@ -737,7 +779,7 @@ def search_ticker():
                 continue
             seen.add(symbol)
             qtype = r.get("quoteType", "")
-            if qtype not in ("EQUITY", "ETF", "MUTUALFUND", "INDEX", "FUTURE"):
+            if qtype not in ("EQUITY", "ETF", "MUTUALFUND", "INDEX", "FUTURE", "CRYPTOCURRENCY"):
                 continue
             quotes.append({
                 "symbol": symbol,
