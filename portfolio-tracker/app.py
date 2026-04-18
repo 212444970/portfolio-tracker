@@ -480,7 +480,7 @@ def _fetch_uncached(ticker: str) -> dict | None:
             or info.get("navPrice")
         )
         currency = info.get("currency", "USD") or "USD"
-        name = (info.get("shortName") or info.get("longName") or ticker).strip()
+        name = (info.get("longName") or info.get("shortName") or ticker).strip()
     except Exception as exc:
         logger.warning("tk.info failed for %s: %s", ticker, exc)
 
@@ -783,7 +783,7 @@ def search_ticker():
                 continue
             quotes.append({
                 "symbol": symbol,
-                "name": (r.get("shortname") or r.get("longname") or symbol).strip(),
+                "name": (r.get("longname") or r.get("shortname") or symbol).strip(),
                 "type": qtype,
                 "exchange": r.get("exchange", ""),
             })
