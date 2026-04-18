@@ -129,16 +129,26 @@ def get_fx_rate(from_currency: str, to_currency: str = "CZK") -> float:
     now = datetime.now().timestamp()
     if key in _fx_cache and now - _fx_ts.get(key, 0) < FX_TTL:
         return _fx_cache[key]
+    tk = yf.Ticker(f"{from_currency}{to_currency}=X")
+    rate = None
     try:
-        info = yf.Ticker(f"{from_currency}{to_currency}=X").info
+        info = tk.info
         rate = info.get("regularMarketPrice") or info.get("bid") or info.get("ask")
-        if rate:
-            _fx_cache[key] = float(rate)
-            _fx_ts[key] = now
-            return float(rate)
-    except Exception:
-        pass
-    return _fx_cache.get(key, 1.0)
+    except Exception as exc:
+        logger.warning("FX info failed %s: %s", key, exc)
+    if not rate:
+        try:
+            rate = tk.fast_info.last_price
+        except Exception as exc:
+            logger.warning("FX fast_info failed %s: %s", key, exc)
+    if rate:
+        logger.info("FX rate %s = %.4f", key, rate)
+        _fx_cache[key] = float(rate)
+        _fx_ts[key] = now
+        return float(rate)
+    fallback = _fx_cache.get(key, 1.0)
+    logger.error("FX rate fetch failed for %s, using %.4f", key, fallback)
+    return fallback
 
 
 # ---------- Storage helpers (Firebase nebo SQLite) ----------
