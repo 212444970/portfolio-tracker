@@ -476,6 +476,59 @@ td.gain-cell small { font-size: 0.67rem; opacity: 0.75; }
   min-width: 90px;
 }
 
+/* ── Filter bar ── */
+.filter-bar {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+.filter-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.filter-pill:hover { border-color: var(--accent); color: var(--text); }
+.filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filter-indicator { font-size: 0.72rem; color: var(--accent); margin-left: 0.4rem; }
+
+/* ── Asset type badge ── */
+.atype-wrap { display: block; margin-top: 3px; }
+.atype-pill {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 0.08rem 0.32rem;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.atype-pill:hover { opacity: 0.7; }
+.atype-EQUITY      { background: rgba(99,102,241,.2);  color: #818cf8; }
+.atype-ETF         { background: rgba(52,211,153,.2);  color: #34d399; }
+.atype-MUTUALFUND  { background: rgba(52,211,153,.2);  color: #34d399; }
+.atype-FUTURE      { background: rgba(251,191,36,.2);  color: #fbbf24; }
+.atype-CRYPTOCURRENCY { background: rgba(168,85,247,.2); color: #c084fc; }
+.atype-INDEX       { background: rgba(139,146,179,.15); color: var(--muted); }
+.atype-sel {
+  font-size: 0.68rem;
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 0.1rem 0.25rem;
+  max-width: 90px;
+  cursor: pointer;
+}
+
 /* ── Recommendation badges ── */
 .rec-badge {
   display: inline-block;

@@ -21,8 +21,8 @@
 
   <!-- ── Summary cards (CZK) ── -->
   {% if total %}
-  <section class="summary">
-    <h2 class="section-label">Portfolio celkem</h2>
+  <section class="summary" id="summary-section">
+    <h2 class="section-label">Portfolio celkem <span id="filter-indicator" class="filter-indicator"></span></h2>
     <div class="cards">
       {% macro breakdown(metric_key) %}
         {% if total.by_cur | length > 1 %}
@@ -42,9 +42,9 @@
         {% endif %}
       {% endmacro %}
 
-      <div class="card">
+      <div class="card" id="card-val">
         <span class="card-label">Celková hodnota</span>
-        <span class="card-value">{{ total.value|czk }} Kč</span>
+        <span class="card-value" id="cv-val">{{ total.value|czk }} Kč</span>
         {% if total.by_cur | length > 1 %}
         <div class="card-breakdown">
           {% for cur, bc in total.by_cur.items() %}
@@ -72,9 +72,9 @@
         </div>
       </div>
       {% endif %}
-      <div class="card {{ 'pos' if total.total_gain >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.total_gain >= 0 else 'neg' }}" id="card-gain">
         <span class="card-label">Celkový zisk/ztráta</span>
-        <span class="card-value">
+        <span class="card-value" id="cv-gain">
           {{ total.total_gain|czk_signed }} Kč
           <small>({{ "%+.2f"|format(total.total_gain_pct) }}%)</small>
         </span>
@@ -92,34 +92,34 @@
         </div>
         {% endif %}
       </div>
-      <div class="card {{ 'pos' if total.gain_24h_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_24h_czk >= 0 else 'neg' }}" id="card-g24">
         <span class="card-label">24 hodin</span>
-        <span class="card-value">{{ total.gain_24h_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g24">{{ total.gain_24h_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_24h_czk') }}
       </div>
-      <div class="card {{ 'pos' if total.gain_7d_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_7d_czk >= 0 else 'neg' }}" id="card-g7">
         <span class="card-label">7 dní</span>
-        <span class="card-value">{{ total.gain_7d_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g7">{{ total.gain_7d_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_7d_czk') }}
       </div>
-      <div class="card {{ 'pos' if total.gain_30d_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_30d_czk >= 0 else 'neg' }}" id="card-g30">
         <span class="card-label">30 dní</span>
-        <span class="card-value">{{ total.gain_30d_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g30">{{ total.gain_30d_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_30d_czk') }}
       </div>
-      <div class="card {{ 'pos' if total.gain_6m_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_6m_czk >= 0 else 'neg' }}" id="card-g6m">
         <span class="card-label">6 měsíců</span>
-        <span class="card-value">{{ total.gain_6m_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g6m">{{ total.gain_6m_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_6m_czk') }}
       </div>
-      <div class="card {{ 'pos' if total.gain_1y_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_1y_czk >= 0 else 'neg' }}" id="card-g1y">
         <span class="card-label">1 rok</span>
-        <span class="card-value">{{ total.gain_1y_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g1y">{{ total.gain_1y_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_1y_czk') }}
       </div>
-      <div class="card {{ 'pos' if total.gain_3y_czk >= 0 else 'neg' }}">
+      <div class="card {{ 'pos' if total.gain_3y_czk >= 0 else 'neg' }}" id="card-g3y">
         <span class="card-label">3 roky</span>
-        <span class="card-value">{{ total.gain_3y_czk|czk_signed }} Kč</span>
+        <span class="card-value" id="cv-g3y">{{ total.gain_3y_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_3y_czk') }}
       </div>
     </div>
@@ -158,6 +158,7 @@
   {% if own %}
   <section class="positions">
     <h2 class="section-label">Portfolio detail</h2>
+    <div id="filter-bar" class="filter-bar"></div>
     <div class="table-wrap">
       <table id="own-table">
         <thead>
@@ -181,9 +182,36 @@
           </tr>
         </thead>
         <tbody>
+          {% set ATMAP = {'EQUITY':'Akcie','ETF':'ETF','MUTUALFUND':'ETF','FUTURE':'Komodity','INDEX':'Index','CRYPTOCURRENCY':'Krypto'} %}
           {% for p in own %}
-          <tr class="{{ 'error-row' if p.error }}" data-fund-id="fund-{{ p.id }}">
-            <td class="ticker-cell" data-val="{{ p.ticker }}">{{ p.ticker }}</td>
+          {% set atype = p.get('quote_type','EQUITY') %}
+          <tr class="data-row {{ 'error-row' if p.error }}"
+              data-fund-id="fund-{{ p.id }}"
+              data-pos-id="{{ p.id }}"
+              data-atype="{{ atype }}"
+              {% if not p.error %}
+              data-val-czk="{{ p.current_value_czk }}"
+              data-cost-czk="{{ p.cost_basis_czk }}"
+              data-g24="{{ p.gain_24h_czk or 0 }}"
+              data-g7="{{ p.gain_7d_czk or 0 }}"
+              data-g30="{{ p.gain_30d_czk or 0 }}"
+              data-g6m="{{ p.gain_6m_czk or 0 }}"
+              data-g1y="{{ p.gain_1y_czk or 0 }}"
+              data-g3y="{{ p.gain_3y_czk or 0 }}"
+              {% endif %}>
+            <td class="ticker-cell" data-val="{{ p.ticker }}">
+              {{ p.ticker }}
+              <div class="atype-wrap" data-doc-id="{{ p.id }}">
+                <span class="atype-pill atype-{{ atype }}" data-qt="{{ atype }}">{{ ATMAP.get(atype,'?') }}</span>
+                <select class="atype-sel" style="display:none">
+                  <option value="EQUITY" {{ 'selected' if atype=='EQUITY' }}>Akcie</option>
+                  <option value="ETF" {{ 'selected' if atype in ('ETF','MUTUALFUND') }}>ETF</option>
+                  <option value="FUTURE" {{ 'selected' if atype=='FUTURE' }}>Komodity</option>
+                  <option value="CRYPTOCURRENCY" {{ 'selected' if atype=='CRYPTOCURRENCY' }}>Krypto</option>
+                  <option value="INDEX" {{ 'selected' if atype=='INDEX' }}>Index</option>
+                </select>
+              </div>
+            </td>
             {% if p.error %}
             <td colspan="14" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
@@ -293,9 +321,26 @@
           </tr>
         </thead>
         <tbody>
+          {% set ATMAP = {'EQUITY':'Akcie','ETF':'ETF','MUTUALFUND':'ETF','FUTURE':'Komodity','INDEX':'Index','CRYPTOCURRENCY':'Krypto'} %}
           {% for p in watch %}
-          <tr class="{{ 'error-row' if p.error }}">
-            <td class="ticker-cell" data-val="{{ p.ticker }}">{{ p.ticker }}</td>
+          {% set atype = p.get('quote_type','EQUITY') %}
+          <tr class="data-row {{ 'error-row' if p.error }}"
+              data-fund-id="fund-{{ p.id }}"
+              data-pos-id="{{ p.id }}"
+              data-atype="{{ atype }}">
+            <td class="ticker-cell" data-val="{{ p.ticker }}">
+              {{ p.ticker }}
+              <div class="atype-wrap" data-doc-id="{{ p.id }}">
+                <span class="atype-pill atype-{{ atype }}" data-qt="{{ atype }}">{{ ATMAP.get(atype,'?') }}</span>
+                <select class="atype-sel" style="display:none">
+                  <option value="EQUITY" {{ 'selected' if atype=='EQUITY' }}>Akcie</option>
+                  <option value="ETF" {{ 'selected' if atype in ('ETF','MUTUALFUND') }}>ETF</option>
+                  <option value="FUTURE" {{ 'selected' if atype=='FUTURE' }}>Komodity</option>
+                  <option value="CRYPTOCURRENCY" {{ 'selected' if atype=='CRYPTOCURRENCY' }}>Krypto</option>
+                  <option value="INDEX" {{ 'selected' if atype=='INDEX' }}>Index</option>
+                </select>
+              </div>
+            </td>
             {% if p.error %}
             <td colspan="15" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
@@ -614,6 +659,127 @@ function toggleFund(id) {
 
   initSortable('own-table');
   initSortable('watch-table');
+})();
+
+// ── Asset type filter + recalc + inline edit ──
+(function () {
+  const LABELS = {EQUITY:'Akcie',ETF:'ETF',MUTUALFUND:'ETF',FUTURE:'Komodity',CRYPTOCURRENCY:'Krypto',INDEX:'Index'};
+  const bar = document.getElementById('filter-bar');
+  const ownRows   = () => Array.from(document.querySelectorAll('#own-table tbody tr.data-row'));
+  const watchRows = () => Array.from(document.querySelectorAll('#watch-table tbody tr.data-row'));
+  let active = '';
+
+  // ── Build / rebuild filter bar ──
+  function buildBar() {
+    const types = new Set([...ownRows(), ...watchRows()].map(r => r.dataset.atype).filter(Boolean));
+    if (!bar) return;
+    bar.innerHTML = '';
+    if (types.size < 2) return;
+    const mkBtn = (label, val) => {
+      const b = document.createElement('button');
+      b.className = 'filter-pill' + (val === active ? ' active' : '');
+      b.textContent = label; b.dataset.filter = val;
+      b.onclick = () => setFilter(val);
+      return b;
+    };
+    bar.appendChild(mkBtn('Vše', ''));
+    [...types].sort().forEach(t => bar.appendChild(mkBtn(LABELS[t] || t, t)));
+  }
+
+  // ── Apply filter ──
+  function setFilter(type) {
+    active = type;
+    buildBar();
+    const indicator = document.getElementById('filter-indicator');
+    if (indicator) indicator.textContent = type ? `· ${LABELS[type] || type}` : '';
+    ownRows().forEach(tr => {
+      const show = !type || tr.dataset.atype === type;
+      tr.style.display = show ? '' : 'none';
+      const fr = document.getElementById(tr.dataset.fundId);
+      if (fr) fr.style.display = show ? '' : 'none';
+    });
+    watchRows().forEach(tr => {
+      const show = !type || tr.dataset.atype === type;
+      tr.style.display = show ? '' : 'none';
+      const fr = document.getElementById(tr.dataset.fundId);
+      if (fr) fr.style.display = show ? '' : 'none';
+    });
+    recalc();
+  }
+
+  // ── Recalculate summary cards ──
+  function recalc() {
+    const visible = ownRows().filter(tr => tr.style.display !== 'none' && tr.dataset.valCzk);
+    let val = 0, cost = 0, g24 = 0, g7 = 0, g30 = 0, g6m = 0, g1y = 0, g3y = 0;
+    visible.forEach(tr => {
+      val  += +tr.dataset.valCzk  || 0;  cost += +tr.dataset.costCzk || 0;
+      g24  += +tr.dataset.g24  || 0;  g7  += +tr.dataset.g7  || 0;
+      g30  += +tr.dataset.g30  || 0;  g6m += +tr.dataset.g6m || 0;
+      g1y  += +tr.dataset.g1y  || 0;  g3y += +tr.dataset.g3y || 0;
+    });
+    const gain = val - cost;
+    const gainPct = cost ? gain / cost * 100 : 0;
+    const fmt  = v => Math.round(v).toLocaleString('en-US');
+    const fmtS = v => { const n = Math.round(v); return (n >= 0 ? '+' : '') + n.toLocaleString('en-US'); };
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerHTML = txt; };
+    const setPosNeg = (id, v) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('pos', v >= 0); el.classList.toggle('neg', v < 0);
+    };
+    setTxt('cv-val',  fmt(val)  + ' Kč');
+    setTxt('cv-gain', fmtS(gain) + ' Kč<small>(' + (gainPct >= 0 ? '+' : '') + gainPct.toFixed(2) + '%)</small>');
+    setPosNeg('card-gain', gain);
+    [['cv-g24',g24,'card-g24'],['cv-g7',g7,'card-g7'],['cv-g30',g30,'card-g30'],
+     ['cv-g6m',g6m,'card-g6m'],['cv-g1y',g1y,'card-g1y'],['cv-g3y',g3y,'card-g3y']
+    ].forEach(([cvId, v, cardId]) => { setTxt(cvId, fmtS(v) + ' Kč'); setPosNeg(cardId, v); });
+    // Dim breakdowns when filtered
+    document.querySelectorAll('#summary-section .card-breakdown').forEach(el => {
+      el.style.opacity = active ? '0.35' : '';
+    });
+  }
+
+  buildBar();
+
+  // ── Inline type edit ──
+  document.querySelectorAll('.atype-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const wrap = pill.closest('.atype-wrap');
+      const sel = wrap.querySelector('.atype-sel');
+      pill.style.display = 'none';
+      sel.style.display = '';
+      sel.value = pill.dataset.qt;
+      sel.focus();
+    });
+  });
+
+  document.querySelectorAll('.atype-sel').forEach(sel => {
+    const commit = async () => {
+      const wrap = sel.closest('.atype-wrap');
+      const pill = wrap.querySelector('.atype-pill');
+      const docId = wrap.dataset.docId;
+      const qt = sel.value;
+      sel.style.display = 'none';
+      pill.style.display = '';
+      if (qt === pill.dataset.qt) return;
+      try {
+        const r = await fetch(`/update-type/${docId}`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({quote_type: qt})
+        });
+        if (!r.ok) return;
+        pill.textContent = LABELS[qt] || qt;
+        pill.className = `atype-pill atype-${qt}`;
+        pill.dataset.qt = qt;
+        const row = wrap.closest('tr');
+        if (row) row.dataset.atype = qt;
+        buildBar();
+        setFilter(active);
+      } catch(e) { console.error(e); }
+    };
+    sel.addEventListener('change', commit);
+    sel.addEventListener('blur', commit);
+  });
 })();
 </script>
 </body>

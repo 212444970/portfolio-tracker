@@ -195,6 +195,14 @@ def add_position_doc(data: dict) -> None:
             """, data)
 
 
+def update_type_doc(doc_id: str, quote_type: str) -> None:
+    if USE_FIREBASE:
+        _fs.collection(COLL).document(doc_id).update({"quote_type": quote_type})
+    else:
+        with _sqlite_conn() as conn:
+            conn.execute("UPDATE positions SET quote_type=? WHERE id=?", (quote_type, doc_id))
+
+
 def update_position_doc(doc_id: str, shares: float, buy_price: float) -> None:
     if USE_FIREBASE:
         _fs.collection(COLL).document(doc_id).update({
@@ -762,6 +770,18 @@ def add_position():
 def delete_position(doc_id: str):
     delete_position_doc(doc_id)
     return redirect(url_for("index"))
+
+
+@app.route("/update-type/<doc_id>", methods=["POST"])
+@login_required
+def update_type(doc_id: str):
+    data = request.get_json(silent=True) or {}
+    qt = data.get("quote_type", "EQUITY")
+    valid = ("EQUITY", "ETF", "MUTUALFUND", "FUTURE", "INDEX", "CRYPTOCURRENCY")
+    if qt not in valid:
+        return jsonify({"error": "invalid type"}), 400
+    update_type_doc(doc_id, qt)
+    return jsonify({"ok": True})
 
 
 @app.route("/search")
