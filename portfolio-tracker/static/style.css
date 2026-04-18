@@ -302,6 +302,25 @@ thead th:first-child {
   background: var(--surface2);
 }
 
+/* sticky delete column — vpravo */
+.td-del {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--surface);
+  width: 36px;
+  padding-left: 0.3rem;
+  padding-right: 0.5rem;
+}
+tbody tr:hover .td-del { background: var(--surface2); }
+thead th.th-del {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: var(--surface2);
+  width: 36px;
+}
+
 /* fund-row (expanded fundamentals) musí mít vyšší z-index aby překryl sticky */
 .fund-row td { z-index: 1; }
 

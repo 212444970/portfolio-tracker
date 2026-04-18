@@ -177,7 +177,7 @@
             <th data-sort="12" class="sortable num-h">3 roky</th>
             <th data-sort="13" class="sortable col-sig-h">Sig.</th>
             <th data-sort="14" class="sortable num-h col-ind-h" title="Relative Strength Index (14 dní) — technický indikátor">RSI</th>
-            <th></th>
+            <th class="th-del"></th>
           </tr>
         </thead>
         <tbody>
@@ -228,7 +228,7 @@
             </td>
             {{ sig_cell(f, 'RSI 14d') }}
             {% endif %}
-            <td data-val="">
+            <td data-val="" class="td-del">
               <form method="POST" action="/delete/{{ p.id }}" onsubmit="return confirm('Smazat {{ p.ticker }}?')">
                 <button type="submit" class="btn-del" title="Smazat">✕</button>
               </form>
@@ -289,7 +289,7 @@
             <th data-sort="13" class="sortable num-h col-ind-h" title="Price to Book">P/B</th>
             <th data-sort="14" class="sortable num-h col-ind-h" title="Return on Equity">ROE</th>
             <th data-sort="15" class="sortable col-ind-h" title="Analytický konsensus">Kons.</th>
-            <th></th>
+            <th class="th-del"></th>
           </tr>
         </thead>
         <tbody>
@@ -325,7 +325,7 @@
             {{ sig_cell(f, 'ROE') }}
             {{ sig_badge_cell(f, 'Konsensus') }}
             {% endif %}
-            <td data-val="">
+            <td data-val="" class="td-del">
               <form method="POST" action="/delete/{{ p.id }}" onsubmit="return confirm('Smazat {{ p.ticker }}?')">
                 <button type="submit" class="btn-del" title="Smazat">✕</button>
               </form>
