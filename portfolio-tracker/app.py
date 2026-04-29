@@ -552,6 +552,7 @@ def _fetch_uncached(ticker: str) -> dict | None:
         "currency": currency,
         "name": name,
         "prev_close": prev_close,
+        "price_48h": price_n_days_ago(2),
         "price_7d":  price_n_days_ago(7),
         "price_30d": price_n_days_ago(30),
         "price_6m":  price_n_days_ago(180),
@@ -583,6 +584,7 @@ def enrich_position(pos: dict) -> dict:
         "currency": stock_cur,
         "current_price": price,
         "pct_24h": pct(data["prev_close"]),
+        "pct_48h": pct(data["price_48h"]),
         "pct_7d":  pct(data["price_7d"]),
         "pct_30d": pct(data["price_30d"]),
         "pct_6m":  pct(data["price_6m"]),
@@ -620,6 +622,7 @@ def enrich_position(pos: dict) -> dict:
         "total_gain_czk": total_gain_czk,
         "total_gain_czk_pct": total_gain_czk_pct,
         "gain_24h_czk": gain_czk(data["prev_close"]),
+        "gain_48h_czk": gain_czk(data["price_48h"]),
         "gain_7d_czk":  gain_czk(data["price_7d"]),
         "gain_30d_czk": gain_czk(data["price_30d"]),
         "gain_6m_czk":  gain_czk(data["price_6m"]),
@@ -660,7 +663,7 @@ def index():
     own   = [p for p in all_pos if p.get("position_type", "own") == "own"]
     watch = [p for p in all_pos if p.get("position_type") == "watch"]
 
-    gain_keys = ["gain_24h_czk", "gain_7d_czk", "gain_30d_czk",
+    gain_keys = ["gain_24h_czk", "gain_48h_czk", "gain_7d_czk", "gain_30d_czk",
                  "gain_6m_czk", "gain_1y_czk", "gain_3y_czk"]
     total: dict | None = None
     valid_own = [p for p in own if not p.get("error")]

@@ -19,6 +19,24 @@
     </div>
   </header>
 
+  <!-- ── Top banner ── -->
+  {% if total %}
+  <div class="top-banner">
+    <div class="banner-item">
+      <span class="banner-label">Hodnota portfolia</span>
+      <span class="banner-val">{{ total.value|czk }} Kč</span>
+    </div>
+    <div class="banner-item {{ 'pos' if total.total_gain >= 0 else 'neg' }}">
+      <span class="banner-label">Celkový zisk / ztráta</span>
+      <span class="banner-val">{{ total.total_gain|czk_signed }} Kč <small>({{ "%+.2f"|format(total.total_gain_pct) }}%)</small></span>
+    </div>
+    <div class="banner-item {{ 'pos' if total.gain_24h_czk >= 0 else 'neg' }}">
+      <span class="banner-label">Za 24 h</span>
+      <span class="banner-val">{{ total.gain_24h_czk|czk_signed }} Kč</span>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── Summary cards (CZK) ── -->
   {% if total %}
   <section class="summary" id="summary-section">
@@ -81,6 +99,11 @@
         <span class="card-label">24 hodin</span>
         <span class="card-value" id="cv-g24">{{ total.gain_24h_czk|czk_signed }} Kč</span>
         {{ breakdown('gain_24h_czk') }}
+      </div>
+      <div class="card {{ 'pos' if total.gain_48h_czk >= 0 else 'neg' }}" id="card-g48">
+        <span class="card-label">48 hodin</span>
+        <span class="card-value" id="cv-g48">{{ total.gain_48h_czk|czk_signed }} Kč</span>
+        {{ breakdown('gain_48h_czk') }}
       </div>
       <div class="card {{ 'pos' if total.gain_7d_czk >= 0 else 'neg' }}" id="card-g7">
         <span class="card-label">7 dní</span>
@@ -156,13 +179,14 @@
             <th data-sort="5" class="sortable num-h">Hodnota (Kč)</th>
             <th data-sort="6" class="sortable num-h col-highlight-h">Celk. zisk</th>
             <th data-sort="7" class="sortable num-h">24 h</th>
-            <th data-sort="8" class="sortable num-h">7 dní</th>
-            <th data-sort="9" class="sortable num-h">30 dní</th>
-            <th data-sort="10" class="sortable num-h">6 měs.</th>
-            <th data-sort="11" class="sortable num-h">1 rok</th>
-            <th data-sort="12" class="sortable num-h">3 roky</th>
-            <th data-sort="13" class="sortable col-sig-h">Sig.</th>
-            <th data-sort="14" class="sortable num-h col-ind-h" title="Relative Strength Index (14 dní) — technický indikátor">RSI</th>
+            <th data-sort="8" class="sortable num-h">48 h</th>
+            <th data-sort="9" class="sortable num-h">7 dní</th>
+            <th data-sort="10" class="sortable num-h">30 dní</th>
+            <th data-sort="11" class="sortable num-h">6 měs.</th>
+            <th data-sort="12" class="sortable num-h">1 rok</th>
+            <th data-sort="13" class="sortable num-h">3 roky</th>
+            <th data-sort="14" class="sortable col-sig-h">Sig.</th>
+            <th data-sort="15" class="sortable num-h col-ind-h" title="Relative Strength Index (14 dní) — technický indikátor">RSI</th>
             <th class="th-del"></th>
           </tr>
         </thead>
@@ -178,6 +202,7 @@
               data-val-czk="{{ p.current_value_czk }}"
               data-cost-czk="{{ p.cost_basis_czk }}"
               data-g24="{{ p.gain_24h_czk or 0 }}"
+              data-g48="{{ p.gain_48h_czk or 0 }}"
               data-g7="{{ p.gain_7d_czk or 0 }}"
               data-g30="{{ p.gain_30d_czk or 0 }}"
               data-g6m="{{ p.gain_6m_czk or 0 }}"
@@ -198,7 +223,7 @@
               </div>
             </td>
             {% if p.error %}
-            <td colspan="14" class="error-msg" data-val="">Nepodařilo se načíst data</td>
+            <td colspan="15" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
             <td data-val="{{ p.name }}" class="col-name">
               <span class="name-editable" data-doc-id="{{ p.id }}" title="Kliknutím přejmenovat">{{ p.name }}</span>
@@ -221,7 +246,7 @@
               <small>({{ "%+.2f"|format(p.total_gain_czk_pct) }}%)</small>
             </td>
             {% for gain_key, pct_key in [
-              ('gain_24h_czk','pct_24h'),('gain_7d_czk','pct_7d'),
+              ('gain_24h_czk','pct_24h'),('gain_48h_czk','pct_48h'),('gain_7d_czk','pct_7d'),
               ('gain_30d_czk','pct_30d'),('gain_6m_czk','pct_6m'),
               ('gain_1y_czk','pct_1y'),('gain_3y_czk','pct_3y')
             ] %}
@@ -292,13 +317,14 @@
             <th data-sort="1" class="sortable col-name">Název</th>
             <th data-sort="2" class="sortable num-h">Akt. cena</th>
             <th data-sort="3" class="sortable num-h">24 h</th>
-            <th data-sort="4" class="sortable num-h">7 dní</th>
-            <th data-sort="5" class="sortable num-h">30 dní</th>
-            <th data-sort="6" class="sortable num-h">6 měs.</th>
-            <th data-sort="7" class="sortable num-h">1 rok</th>
-            <th data-sort="8" class="sortable num-h">3 roky</th>
-            <th data-sort="9" class="sortable col-sig-h">Sig.</th>
-            <th data-sort="10" class="sortable num-h col-ind-h" title="RSI 14 dní">RSI</th>
+            <th data-sort="4" class="sortable num-h">48 h</th>
+            <th data-sort="5" class="sortable num-h">7 dní</th>
+            <th data-sort="6" class="sortable num-h">30 dní</th>
+            <th data-sort="7" class="sortable num-h">6 měs.</th>
+            <th data-sort="8" class="sortable num-h">1 rok</th>
+            <th data-sort="9" class="sortable num-h">3 roky</th>
+            <th data-sort="10" class="sortable col-sig-h">Sig.</th>
+            <th data-sort="11" class="sortable num-h col-ind-h" title="RSI 14 dní">RSI</th>
             <th data-sort="11" class="sortable num-h col-ind-h" title="P/E (trailing)">P/E</th>
             <th data-sort="12" class="sortable num-h col-ind-h" title="Forward P/E">Forw. P/E</th>
             <th data-sort="13" class="sortable num-h col-ind-h" title="Price to Book">P/B</th>
@@ -329,7 +355,7 @@
               </div>
             </td>
             {% if p.error %}
-            <td colspan="15" class="error-msg" data-val="">Nepodařilo se načíst data</td>
+            <td colspan="16" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
             <td data-val="{{ p.name }}" class="col-name">
               <span class="name-editable" data-doc-id="{{ p.id }}" title="Kliknutím přejmenovat">{{ p.name }}</span>
@@ -338,7 +364,7 @@
               {{ "%.2f"|format(p.current_price) }}<br>
               <small class="muted">{{ p.currency }}</small>
             </td>
-            {% for k in ['pct_24h','pct_7d','pct_30d','pct_6m','pct_1y','pct_3y'] %}
+            {% for k in ['pct_24h','pct_48h','pct_7d','pct_30d','pct_6m','pct_1y','pct_3y'] %}
             {% set v = p.get(k) %}
             <td data-val="{{ v if v is not none else '' }}" class="num {{ 'pos' if (v or 0) >= 0 else 'neg' }}">
               {{ v|pct }}
@@ -699,12 +725,13 @@ function toggleFund(id) {
   // ── Recalculate summary cards ──
   function recalc() {
     const visible = ownRows().filter(tr => tr.style.display !== 'none' && tr.dataset.valCzk);
-    let val = 0, cost = 0, g24 = 0, g7 = 0, g30 = 0, g6m = 0, g1y = 0, g3y = 0;
+    let val = 0, cost = 0, g24 = 0, g48 = 0, g7 = 0, g30 = 0, g6m = 0, g1y = 0, g3y = 0;
     visible.forEach(tr => {
       val  += +tr.dataset.valCzk  || 0;  cost += +tr.dataset.costCzk || 0;
-      g24  += +tr.dataset.g24  || 0;  g7  += +tr.dataset.g7  || 0;
-      g30  += +tr.dataset.g30  || 0;  g6m += +tr.dataset.g6m || 0;
-      g1y  += +tr.dataset.g1y  || 0;  g3y += +tr.dataset.g3y || 0;
+      g24  += +tr.dataset.g24  || 0;  g48 += +tr.dataset.g48 || 0;
+      g7   += +tr.dataset.g7   || 0;  g30 += +tr.dataset.g30 || 0;
+      g6m  += +tr.dataset.g6m  || 0;  g1y += +tr.dataset.g1y || 0;
+      g3y  += +tr.dataset.g3y  || 0;
     });
     const gain = val - cost;
     const gainPct = cost ? gain / cost * 100 : 0;
@@ -719,8 +746,9 @@ function toggleFund(id) {
     setTxt('cv-val',  fmt(val)  + ' Kč');
     setTxt('cv-gain', fmtS(gain) + ' Kč<small>(' + (gainPct >= 0 ? '+' : '') + gainPct.toFixed(2) + '%)</small>');
     setPosNeg('card-gain', gain);
-    [['cv-g24',g24,'card-g24'],['cv-g7',g7,'card-g7'],['cv-g30',g30,'card-g30'],
-     ['cv-g6m',g6m,'card-g6m'],['cv-g1y',g1y,'card-g1y'],['cv-g3y',g3y,'card-g3y']
+    [['cv-g24',g24,'card-g24'],['cv-g48',g48,'card-g48'],['cv-g7',g7,'card-g7'],
+     ['cv-g30',g30,'card-g30'],['cv-g6m',g6m,'card-g6m'],['cv-g1y',g1y,'card-g1y'],
+     ['cv-g3y',g3y,'card-g3y']
     ].forEach(([cvId, v, cardId]) => { setTxt(cvId, fmtS(v) + ' Kč'); setPosNeg(cardId, v); });
     // Dim breakdowns when filtered
     document.querySelectorAll('#summary-section .card-breakdown').forEach(el => {

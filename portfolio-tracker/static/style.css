@@ -53,6 +53,45 @@ header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
 }
 
 /* ── Summary cards ── */
+.top-banner {
+  display: flex;
+  gap: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.banner-item {
+  flex: 1;
+  padding: 0.9rem 1.2rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.banner-item:last-child { border-right: none; }
+.banner-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.banner-val {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.banner-item.pos .banner-val { color: var(--pos); }
+.banner-item.neg .banner-val { color: var(--neg); }
+.banner-val small { font-size: 0.8rem; font-weight: 400; }
+@media (max-width: 600px) {
+  .top-banner { flex-direction: column; }
+  .banner-item { border-right: none; border-bottom: 1px solid var(--border); }
+  .banner-item:last-child { border-bottom: none; }
+}
+
 .summary { margin-bottom: 2.5rem; }
 .cards {
   display: grid;
