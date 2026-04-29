@@ -102,6 +102,12 @@ header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
   font-size: 0.65rem;
   letter-spacing: 0.04em;
 }
+.bc-type {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.65rem;
+  min-width: 56px;
+}
 .bc-val { color: var(--text); font-variant-numeric: tabular-nums; }
 .bc-val.pos { color: var(--pos); }
 .bc-val.neg { color: var(--neg); }
@@ -518,6 +524,24 @@ td.gain-cell small { font-size: 0.67rem; opacity: 0.75; }
 .atype-FUTURE      { background: rgba(251,191,36,.2);  color: #fbbf24; }
 .atype-CRYPTOCURRENCY { background: rgba(168,85,247,.2); color: #c084fc; }
 .atype-INDEX       { background: rgba(139,146,179,.15); color: var(--muted); }
+.name-editable {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+}
+.name-editable:hover { border-bottom-color: var(--accent); }
+.name-edit {
+  font-size: inherit;
+  font-family: inherit;
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 0.1rem 0.3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .atype-sel {
   font-size: 0.68rem;
   background: var(--surface2);

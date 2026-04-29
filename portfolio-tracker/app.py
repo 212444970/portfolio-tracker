@@ -195,6 +195,14 @@ def add_position_doc(data: dict) -> None:
             """, data)
 
 
+def update_name_doc(doc_id: str, name: str) -> None:
+    if USE_FIREBASE:
+        _fs.collection(COLL).document(doc_id).update({"name": name})
+    else:
+        with _sqlite_conn() as conn:
+            conn.execute("UPDATE positions SET name=? WHERE id=?", (name, doc_id))
+
+
 def update_type_doc(doc_id: str, quote_type: str) -> None:
     if USE_FIREBASE:
         _fs.collection(COLL).document(doc_id).update({"quote_type": quote_type})
@@ -666,40 +674,32 @@ def index():
         total["total_gain"] = total["value"] - total["cost"]
         total["total_gain_pct"] = (total["total_gain"] / total["cost"] * 100) if total["cost"] else 0
 
-        by_cur: dict[str, dict] = {}
-        for p in valid_own:
-            cur = p["currency"]
-            if cur not in by_cur:
-                by_cur[cur] = {"value": 0, "total_gain": 0}
-                for k in gain_keys:
-                    by_cur[cur][k] = 0
-            by_cur[cur]["value"]      += p["current_value_czk"]
-            by_cur[cur]["total_gain"] += p["total_gain_czk"]
-            for k in gain_keys:
-                by_cur[cur][k] += p.get(k) or 0
-
         def safe_pct(part, whole):
             return round(part / whole * 100) if whole else 0
 
-        for bc in by_cur.values():
-            bc["value_pct"]      = safe_pct(bc["value"], total["value"])
-            bc["total_gain_pct"] = safe_pct(bc["total_gain"], total["total_gain"]) if total["total_gain"] else 0
-            for k in gain_keys:
-                bc[f"{k}_pct"] = safe_pct(bc[k], total[k]) if total[k] else 0
-
-        total["by_cur"] = dict(sorted(by_cur.items(), key=lambda x: -x[1]["value"]))
-
-        # ── Breakdown dle třídy aktiv ──
         ASSET_LABELS = {
             "EQUITY": "Akcie", "ETF": "ETF", "MUTUALFUND": "ETF",
             "FUTURE": "Komodity", "INDEX": "Index", "CRYPTOCURRENCY": "Krypto",
         }
-        by_type: dict[str, float] = {}
+        by_type: dict[str, dict] = {}
         for p in valid_own:
             label = ASSET_LABELS.get(p.get("quote_type", "EQUITY"), "Akcie")
-            by_type[label] = by_type.get(label, 0) + p["current_value_czk"]
-        total["by_type"] = dict(sorted(by_type.items(), key=lambda x: -x[1]))
-        total["by_type_pct"] = {k: safe_pct(v, total["value"]) for k, v in by_type.items()}
+            if label not in by_type:
+                by_type[label] = {"value": 0, "total_gain": 0}
+                for k in gain_keys:
+                    by_type[label][k] = 0
+            by_type[label]["value"]      += p["current_value_czk"]
+            by_type[label]["total_gain"] += p["total_gain_czk"]
+            for k in gain_keys:
+                by_type[label][k] += p.get(k) or 0
+
+        for bt in by_type.values():
+            bt["value_pct"]      = safe_pct(bt["value"], total["value"])
+            bt["total_gain_pct"] = safe_pct(bt["total_gain"], total["total_gain"]) if total["total_gain"] else 0
+            for k in gain_keys:
+                bt[f"{k}_pct"] = safe_pct(bt[k], total[k]) if total[k] else 0
+
+        total["by_type"] = dict(sorted(by_type.items(), key=lambda x: -x[1]["value"]))
 
     return render_template("index.html", own=own, watch=watch, total=total)
 
@@ -770,6 +770,17 @@ def add_position():
 def delete_position(doc_id: str):
     delete_position_doc(doc_id)
     return redirect(url_for("index"))
+
+
+@app.route("/update-name/<doc_id>", methods=["POST"])
+@login_required
+def update_name(doc_id: str):
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "empty"}), 400
+    update_name_doc(doc_id, name)
+    return jsonify({"ok": True})
 
 
 @app.route("/update-type/<doc_id>", methods=["POST"])

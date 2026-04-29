@@ -25,14 +25,14 @@
     <h2 class="section-label">Portfolio celkem <span id="filter-indicator" class="filter-indicator"></span></h2>
     <div class="cards">
       {% macro breakdown(metric_key) %}
-        {% if total.by_cur | length > 1 %}
+        {% if total.by_type | length > 1 %}
         <div class="card-breakdown">
-          {% for cur, bc in total.by_cur.items() %}
-          {% set val = bc[metric_key] %}
-          {% set pct = bc[metric_key ~ '_pct'] %}
+          {% for label, bt in total.by_type.items() %}
+          {% set val = bt[metric_key] %}
+          {% set pct = bt[metric_key ~ '_pct'] %}
           {% if val != 0 %}
           <div class="bc-row">
-            <span class="bc-cur">{{ cur }}</span>
+            <span class="bc-cur bc-type">{{ label }}</span>
             <span class="bc-val {{ 'pos' if val >= 0 else 'neg' }}">{{ val|czk_signed }} Kč</span>
             <span class="bc-pct">{{ pct }}%</span>
           </div>
@@ -45,47 +45,32 @@
       <div class="card" id="card-val">
         <span class="card-label">Celková hodnota</span>
         <span class="card-value" id="cv-val">{{ total.value|czk }} Kč</span>
-        {% if total.by_cur | length > 1 %}
+        {% if total.by_type | length > 1 %}
         <div class="card-breakdown">
-          {% for cur, bc in total.by_cur.items() %}
+          {% for label, bt in total.by_type.items() %}
           <div class="bc-row">
-            <span class="bc-cur">{{ cur }}</span>
-            <span class="bc-val">{{ bc.value|czk }} Kč</span>
-            <span class="bc-pct">{{ bc.value_pct }}%</span>
+            <span class="bc-cur bc-type">{{ label }}</span>
+            <span class="bc-val">{{ bt.value|czk }} Kč</span>
+            <span class="bc-pct">{{ bt.value_pct }}%</span>
           </div>
           {% endfor %}
         </div>
         {% endif %}
       </div>
-      {% if total.by_type | length > 1 %}
-      <div class="card">
-        <span class="card-label">Dle třídy aktiv</span>
-        <span class="card-value">{{ total.by_type | length }} třídy</span>
-        <div class="card-breakdown">
-          {% for label, val in total.by_type.items() %}
-          <div class="bc-row">
-            <span class="bc-cur" style="width:4.5rem;font-size:0.62rem">{{ label }}</span>
-            <span class="bc-val">{{ val|czk }} Kč</span>
-            <span class="bc-pct">{{ total.by_type_pct[label] }}%</span>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
       <div class="card {{ 'pos' if total.total_gain >= 0 else 'neg' }}" id="card-gain">
         <span class="card-label">Celkový zisk/ztráta</span>
         <span class="card-value" id="cv-gain">
           {{ total.total_gain|czk_signed }} Kč
           <small>({{ "%+.2f"|format(total.total_gain_pct) }}%)</small>
         </span>
-        {% if total.by_cur | length > 1 %}
+        {% if total.by_type | length > 1 %}
         <div class="card-breakdown">
-          {% for cur, bc in total.by_cur.items() %}
-          {% if bc.total_gain != 0 %}
+          {% for label, bt in total.by_type.items() %}
+          {% if bt.total_gain != 0 %}
           <div class="bc-row">
-            <span class="bc-cur">{{ cur }}</span>
-            <span class="bc-val {{ 'pos' if bc.total_gain >= 0 else 'neg' }}">{{ bc.total_gain|czk_signed }} Kč</span>
-            <span class="bc-pct">{{ bc.total_gain_pct }}%</span>
+            <span class="bc-cur bc-type">{{ label }}</span>
+            <span class="bc-val {{ 'pos' if bt.total_gain >= 0 else 'neg' }}">{{ bt.total_gain|czk_signed }} Kč</span>
+            <span class="bc-pct">{{ bt.total_gain_pct }}%</span>
           </div>
           {% endif %}
           {% endfor %}
@@ -215,7 +200,9 @@
             {% if p.error %}
             <td colspan="14" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
-            <td data-val="{{ p.name }}" class="col-name">{{ p.name }}</td>
+            <td data-val="{{ p.name }}" class="col-name">
+              <span class="name-editable" data-doc-id="{{ p.id }}" title="Kliknutím přejmenovat">{{ p.name }}</span>
+            </td>
             <td data-val="{{ p.shares }}" class="num col-compact">{{ "%.0f"|format(p.shares) }}</td>
             <td data-val="{{ p.cost_basis_czk }}" class="num col-compact">
               {{ "%.2f"|format(p.buy_price) }}<br>
@@ -344,7 +331,9 @@
             {% if p.error %}
             <td colspan="15" class="error-msg" data-val="">Nepodařilo se načíst data</td>
             {% else %}
-            <td data-val="{{ p.name }}" class="col-name">{{ p.name }}</td>
+            <td data-val="{{ p.name }}" class="col-name">
+              <span class="name-editable" data-doc-id="{{ p.id }}" title="Kliknutím přejmenovat">{{ p.name }}</span>
+            </td>
             <td data-val="{{ p.current_price }}" class="num col-compact">
               {{ "%.2f"|format(p.current_price) }}<br>
               <small class="muted">{{ p.currency }}</small>
@@ -779,6 +768,39 @@ function toggleFund(id) {
     };
     sel.addEventListener('change', commit);
     sel.addEventListener('blur', commit);
+  });
+  // ── Inline name edit ──
+  document.querySelectorAll('.name-editable').forEach(span => {
+    span.addEventListener('click', () => {
+      if (span.querySelector('input')) return;
+      const docId = span.dataset.docId;
+      const original = span.textContent.trim();
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'name-edit';
+      input.value = original;
+      span.textContent = '';
+      span.appendChild(input);
+      input.focus();
+      input.select();
+      const commit = async () => {
+        const name = input.value.trim();
+        span.textContent = name || original;
+        if (!name || name === original) return;
+        try {
+          const r = await fetch(`/update-name/${docId}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name})
+          });
+          if (!r.ok) span.textContent = original;
+        } catch(e) { span.textContent = original; }
+      };
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { span.textContent = original; }
+      });
+    });
   });
 })();
 </script>
