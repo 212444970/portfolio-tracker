@@ -194,9 +194,9 @@ def add_position_doc(data: dict) -> None:
         with _sqlite_conn() as conn:
             conn.execute("""
                 INSERT INTO positions
-                    (id, ticker, name, position_type, shares, buy_price, buy_currency, currency, added_at)
+                    (id, ticker, name, position_type, shares, buy_price, buy_currency, currency, quote_type, added_at)
                 VALUES
-                    (:id, :ticker, :name, :position_type, :shares, :buy_price, :buy_currency, :currency, :added_at)
+                    (:id, :ticker, :name, :position_type, :shares, :buy_price, :buy_currency, :currency, :quote_type, :added_at)
             """, data)
 
 
