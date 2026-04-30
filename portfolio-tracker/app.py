@@ -787,7 +787,12 @@ def update_name(doc_id: str):
     name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"error": "empty"}), 400
-    update_name_doc(doc_id, name)
+    try:
+        update_name_doc(doc_id, name)
+        logger.info("update_name: doc=%s name=%s", doc_id, name)
+    except Exception as exc:
+        logger.exception("update_name failed: %s", exc)
+        return jsonify({"error": str(exc)}), 500
     return jsonify({"ok": True})
 
 
@@ -799,7 +804,12 @@ def update_type(doc_id: str):
     valid = ("EQUITY", "ETF", "MUTUALFUND", "FUTURE", "INDEX", "CRYPTOCURRENCY")
     if qt not in valid:
         return jsonify({"error": "invalid type"}), 400
-    update_type_doc(doc_id, qt)
+    try:
+        update_type_doc(doc_id, qt)
+        logger.info("update_type: doc=%s qt=%s", doc_id, qt)
+    except Exception as exc:
+        logger.exception("update_type failed: %s", exc)
+        return jsonify({"error": str(exc)}), 500
     return jsonify({"ok": True})
 
 

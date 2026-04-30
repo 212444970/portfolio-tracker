@@ -753,7 +753,7 @@ function toggleFund(id) {
   });
 
   document.querySelectorAll('.atype-sel').forEach(sel => {
-    const commit = async () => {
+    sel.addEventListener('change', async () => {
       const wrap = sel.closest('.atype-wrap');
       const pill = wrap.querySelector('.atype-pill');
       const docId = wrap.dataset.docId;
@@ -766,7 +766,8 @@ function toggleFund(id) {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({quote_type: qt})
         });
-        if (!r.ok) return;
+        const json = r.ok ? await r.json().catch(() => null) : null;
+        if (!json?.ok) return;
         pill.textContent = LABELS[qt] || qt;
         pill.className = `atype-pill atype-${qt}`;
         pill.dataset.qt = qt;
@@ -775,9 +776,7 @@ function toggleFund(id) {
         buildBar();
         setFilter(active);
       } catch(e) { console.error(e); }
-    };
-    sel.addEventListener('change', commit);
-    sel.addEventListener('blur', commit);
+    });
   });
   // ── Inline name edit ──
   document.querySelectorAll('.name-editable').forEach(span => {
@@ -802,7 +801,8 @@ function toggleFund(id) {
             method: 'POST', headers: {'Content-Type':'application/json'},
             body: JSON.stringify({name})
           });
-          if (!r.ok) span.textContent = original;
+          const json = r.ok ? await r.json().catch(() => null) : null;
+          if (!json?.ok) span.textContent = original;
         } catch(e) { span.textContent = original; }
       };
       input.addEventListener('blur', commit);
