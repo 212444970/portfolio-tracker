@@ -19,24 +19,6 @@
     </div>
   </header>
 
-  <!-- ── Top banner ── -->
-  {% if total %}
-  <div class="top-banner">
-    <div class="banner-item">
-      <span class="banner-label">Hodnota portfolia</span>
-      <span class="banner-val">{{ total.value|czk }} Kč</span>
-    </div>
-    <div class="banner-item {{ 'pos' if total.total_gain >= 0 else 'neg' }}">
-      <span class="banner-label">Celkový zisk / ztráta</span>
-      <span class="banner-val">{{ total.total_gain|czk_signed }} Kč <small>({{ "%+.2f"|format(total.total_gain_pct) }}%)</small></span>
-    </div>
-    <div class="banner-item {{ 'pos' if total.gain_24h_czk >= 0 else 'neg' }}">
-      <span class="banner-label">Za 24 h</span>
-      <span class="banner-val">{{ total.gain_24h_czk|czk_signed }} Kč</span>
-    </div>
-  </div>
-  {% endif %}
-
   <!-- ── Summary cards (CZK) ── -->
   {% if total %}
   <section class="summary" id="summary-section">

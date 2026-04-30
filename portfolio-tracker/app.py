@@ -78,9 +78,14 @@ def _sqlite_init():
                 buy_price    REAL NOT NULL DEFAULT 0,
                 buy_currency TEXT NOT NULL DEFAULT 'USD',
                 currency     TEXT NOT NULL DEFAULT 'USD',
+                quote_type   TEXT NOT NULL DEFAULT 'EQUITY',
                 added_at     TEXT NOT NULL
             )
         """)
+        try:
+            conn.execute("ALTER TABLE positions ADD COLUMN quote_type TEXT NOT NULL DEFAULT 'EQUITY'")
+        except Exception:
+            pass
 
 if not USE_FIREBASE:
     _sqlite_init()
@@ -580,7 +585,7 @@ def enrich_position(pos: dict) -> dict:
         return (price - ref) / ref * 100
 
     pos.update({
-        "name": data["name"],
+        "name": pos.get("name") or data["name"],
         "currency": stock_cur,
         "current_price": price,
         "pct_24h": pct(data["prev_close"]),
