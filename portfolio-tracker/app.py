@@ -397,23 +397,30 @@ def compute_recommendation(info: dict, hist) -> dict:
 
     # ── RSI 14-day (from price history) ──
     if hist is not None and not hist.empty and len(hist) >= 20:
-        recent = list(hist["Close"].iloc[-20:])
-        deltas = [recent[i] - recent[i - 1] for i in range(1, len(recent))]
-        gains  = [d if d > 0 else 0 for d in deltas[-14:]]
-        losses = [-d if d < 0 else 0 for d in deltas[-14:]]
-        avg_g  = sum(gains) / 14
-        avg_l  = sum(losses) / 14
-        rsi = 100.0 if avg_l == 0 else 100 - (100 / (1 + avg_g / avg_l))
-        if rsi <= 30:
-            add("RSI 14d", rsi, f"{rsi:.0f}", +2, "Přeprodáno — nákupní příležitost")
-        elif rsi <= 45:
-            add("RSI 14d", rsi, f"{rsi:.0f}", +1, "Mírně přeprodáno")
-        elif rsi <= 60:
-            add("RSI 14d", rsi, f"{rsi:.0f}",  0, "Neutrální")
-        elif rsi <= 70:
-            add("RSI 14d", rsi, f"{rsi:.0f}",  0, "Mírně překoupeno")
-        else:
-            add("RSI 14d", rsi, f"{rsi:.0f}", -1, "Překoupeno — prodejní signál")
+        close_series = None
+        if "Close" in hist.columns:
+            close_series = hist["Close"]
+        elif "close" in hist.columns:
+            close_series = hist["close"]
+
+        if close_series is not None and len(close_series) >= 20:
+            recent = list(close_series.iloc[-20:])
+            deltas = [recent[i] - recent[i - 1] for i in range(1, len(recent))]
+            gains  = [d if d > 0 else 0 for d in deltas[-14:]]
+            losses = [-d if d < 0 else 0 for d in deltas[-14:]]
+            avg_g  = sum(gains) / 14
+            avg_l  = sum(losses) / 14
+            rsi = 100.0 if avg_l == 0 else 100 - (100 / (1 + avg_g / avg_l))
+            if rsi <= 30:
+                add("RSI 14d", rsi, f"{rsi:.0f}", +2, "Přeprodáno — nákupní příležitost")
+            elif rsi <= 45:
+                add("RSI 14d", rsi, f"{rsi:.0f}", +1, "Mírně přeprodáno")
+            elif rsi <= 60:
+                add("RSI 14d", rsi, f"{rsi:.0f}",  0, "Neutrální")
+            elif rsi <= 70:
+                add("RSI 14d", rsi, f"{rsi:.0f}",  0, "Mírně překoupeno")
+            else:
+                add("RSI 14d", rsi, f"{rsi:.0f}", -1, "Překoupeno — prodejní signál")
 
     # ── Beta (informační) ──
     beta = info.get("beta")
@@ -527,7 +534,7 @@ def _fetch_uncached(ticker: str) -> dict | None:
         try:
             hist = tk.history(period=_period, auto_adjust=True)
             if not hist.empty:
-                closes = hist["Close"].copy()
+                closes = hist["Close"].dropna()
                 if closes.index.tz is not None:
                     closes.index = closes.index.tz_convert("UTC").tz_localize(None)
                 logger.info("History OK for %s: %d rows (period=%s)", ticker, len(closes), _period)
