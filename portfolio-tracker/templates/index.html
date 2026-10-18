@@ -430,6 +430,7 @@
         <div class="field ac-wrap">
           <label for="ticker-input">Ticker / název</label>
           <input id="ticker-input" type="text" placeholder="AAPL, Apple, ČEZ…" autocomplete="off">
+          <small>Vyberte výsledek, nebo zadejte ticker Yahoo Finance velkými písmeny.</small>
           <input id="ticker" name="ticker" type="hidden" required>
           <input id="quote_type" name="quote_type" type="hidden" value="EQUITY">
           <ul id="ac-list" class="ac-list" role="listbox" hidden></ul>
@@ -596,10 +597,16 @@
 
   document.getElementById('add-form').addEventListener('submit', e => {
     if (!hidden.value) {
-      e.preventDefault();
-      input.focus();
-      input.style.borderColor = 'var(--neg)';
-      setTimeout(() => input.style.borderColor = '', 1500);
+      const manualTicker = input.value.trim();
+      if (/^[A-Z0-9.^=_-]+$/.test(manualTicker)) {
+        hidden.value = manualTicker;
+        document.getElementById('quote_type').value = 'EQUITY';
+      } else {
+        e.preventDefault();
+        input.focus();
+        input.style.borderColor = 'var(--neg)';
+        setTimeout(() => input.style.borderColor = '', 1500);
+      }
     }
   });
 })();

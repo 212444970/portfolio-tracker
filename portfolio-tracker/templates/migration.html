@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Přenos portfolia</title>
+</head>
+<body>
+  <main>
+    <h1>Import portfolia</h1>
+    <p>Vyberte soubor portfolio-export.json stažený z Renderu.</p>
+    <p>Import je povolen pouze do prázdného portfolia.</p>
+    <form method="post" enctype="multipart/form-data">
+      <input type="file" name="file" accept="application/json,.json" required>
+      <button type="submit">Importovat portfolio</button>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,12 +1,16 @@
 import json
 import logging
+import math
 import os
+import secrets
 import sqlite3
 import uuid
+from io import BytesIO
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, send_file
 import yfinance as yf
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -44,12 +48,22 @@ if USE_FIREBASE:
 
 # ---------- SQLite fallback ----------
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "portfolio.db")
+DB_PATH = os.environ.get("DATABASE_PATH") or os.path.join(
+    os.path.dirname(__file__), "portfolio.db"
+)
 
+@contextmanager
 def _sqlite_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 REQUIRED_COLS = {"id", "ticker", "name", "position_type", "shares",
                  "buy_price", "buy_currency", "currency", "added_at"}
@@ -244,6 +258,114 @@ def delete_position_doc(doc_id: str) -> None:
     else:
         with _sqlite_conn() as conn:
             conn.execute("DELETE FROM positions WHERE id = ?", (doc_id,))
+
+
+def _migration_authorized() -> bool:
+    token = os.environ.get("PORTFOLIO_MIGRATION_TOKEN")
+    auth = request.authorization
+    return bool(
+        token
+        and auth
+        and auth.username == "portfolio-migration"
+        and secrets.compare_digest(auth.password or "", token)
+    )
+
+
+def _migration_auth_error():
+    if not os.environ.get("PORTFOLIO_MIGRATION_TOKEN"):
+        return jsonify({"error": "Portfolio migration is not configured"}), 503
+    response = jsonify({"error": "Migration credentials required"})
+    response.status_code = 401
+    response.headers["WWW-Authenticate"] = 'Basic realm="Portfolio migration"'
+    return response
+
+
+@app.route("/migration/export")
+def export_portfolio():
+    if not _migration_authorized():
+        return _migration_auth_error()
+    if USE_FIREBASE:
+        return jsonify({"error": "SQLite export is unavailable when Firebase is enabled"}), 409
+
+    payload = {
+        "format_version": 1,
+        "positions": get_positions(),
+    }
+    return send_file(
+        BytesIO(json.dumps(payload, ensure_ascii=False).encode("utf-8")),
+        mimetype="application/json",
+        as_attachment=True,
+        download_name="portfolio-export.json",
+    )
+
+
+@app.route("/migration/import", methods=["GET", "POST"])
+def import_portfolio():
+    if not _migration_authorized():
+        return _migration_auth_error()
+    if USE_FIREBASE:
+        return jsonify({"error": "SQLite import is unavailable when Firebase is enabled"}), 409
+    if request.method == "GET":
+        return render_template("migration.html")
+
+    upload = request.files.get("file")
+    if upload is None:
+        return jsonify({"error": "Upload the export as a file field named 'file'"}), 400
+    try:
+        payload = json.load(upload.stream)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return jsonify({"error": "Invalid JSON export"}), 400
+    if not isinstance(payload, dict) or payload.get("format_version") != 1:
+        return jsonify({"error": "Unsupported portfolio export format"}), 400
+    positions = payload.get("positions")
+    if not isinstance(positions, list):
+        return jsonify({"error": "Export must contain a positions list"}), 400
+
+    required = {
+        "id", "ticker", "name", "position_type", "shares", "buy_price",
+        "buy_currency", "currency", "added_at",
+    }
+    allowed = required | {"quote_type"}
+    rows = []
+    for position in positions:
+        if not isinstance(position, dict) or not required.issubset(position):
+            return jsonify({"error": "An exported position is missing required fields"}), 400
+        row = {key: position[key] for key in allowed if key in position}
+        if (
+            not all(isinstance(row[key], str) and row[key] for key in ("id", "ticker", "name", "added_at"))
+            or row["position_type"] not in ("own", "watch")
+            or not isinstance(row["shares"], (int, float))
+            or isinstance(row["shares"], bool)
+            or not math.isfinite(row["shares"])
+            or not isinstance(row["buy_price"], (int, float))
+            or isinstance(row["buy_price"], bool)
+            or not math.isfinite(row["buy_price"])
+        ):
+            return jsonify({"error": "An exported position contains invalid data"}), 400
+        row.setdefault("quote_type", "EQUITY")
+        rows.append(row)
+
+    try:
+        with _sqlite_conn() as conn:
+            if conn.execute("SELECT 1 FROM positions LIMIT 1").fetchone():
+                return jsonify({"error": "Target portfolio is not empty; import was not applied"}), 409
+            conn.executemany(
+                """
+                INSERT INTO positions
+                    (id, ticker, name, position_type, shares, buy_price, buy_currency,
+                     currency, quote_type, added_at)
+                VALUES
+                    (:id, :ticker, :name, :position_type, :shares, :buy_price, :buy_currency,
+                     :currency, :quote_type, :added_at)
+                """,
+                rows,
+            )
+    except sqlite3.IntegrityError:
+        logger.exception("Portfolio migration import failed due to a database constraint")
+        return jsonify({"error": "Import failed because the export contains duplicate or invalid records"}), 400
+
+    logger.info("Imported %d portfolio positions", len(rows))
+    return jsonify({"ok": True, "imported": len(rows)})
 
 
 # ---------- Fundamentals / recommendation ----------
@@ -845,6 +967,7 @@ def search_ticker():
             })
         return jsonify(quotes)
     except Exception:
+        logger.exception("Ticker search failed for %r", q)
         return jsonify([])
 
 
