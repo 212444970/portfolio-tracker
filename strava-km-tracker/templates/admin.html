@@ -1,74 +1,33 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin &#8212; Bike KM Tracker</title>
+  <title>Admin — Bike KM Tracker</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header>
-    <h1>&#128690; Admin</h1>
-    <a href="/" class="btn btn-ghost">&larr; Public page</a>
+    <h1>🚴 Admin</h1>
+    <a href="/" class="btn btn-ghost">← Public page</a>
   </header>
 
   <div class="admin-box">
-    <h2>Garmin Connect</h2>
-
-    {% if garmin_connected %}
-      <div class="status connected">Garmin p&#345;ipojen</div>
-      <p>Nov&#233; aktivity (od 16.&#160;8.&#160;2026) se na&#269;&#237;taj&#237; z Garmin Connect.</p>
-      <div class="admin-actions">
-        <form action="/admin/refresh" method="post">
-          <button class="btn btn-secondary">Sync Garmin</button>
-        </form>
-        <form action="/admin/garmin-disconnect" method="post">
-          <button class="btn btn-danger">Odpojit Garmin</button>
-        </form>
-      </div>
-
-    {% else %}
-      <div class="status disconnected">Garmin nep&#345;ipojen</div>
-      {% if garmin_error %}
-        <p class="error-msg">{{ garmin_error }}</p>
-      {% endif %}
-
-      <p style="margin-top:1rem"><strong>Mo&#382;nost 1: Nahr&#225;t tokeny</strong> (doporu&#269;eno)</p>
-      <p style="font-size:.85rem;color:#aaa">Garmin blokuje p&#345;ihl&#225;&#353;en&#237; ze sd&#237;len&#253;ch cloud IP. Spus&#357; <code>python garmin_login_connect.py</code> lok&#225;ln&#283; a nahr&#225;j vygenerovan&#253; soubor:</p>
-      <form action="/admin/upload-garmin-tokens" method="post" enctype="multipart/form-data" class="login-form">
-        <input type="file" name="tokens_file" accept=".json" required
-               style="padding:.4rem;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#e8e8e8;font-size:.9rem;" />
-        <button class="btn btn-strava" type="submit">Nahr&#225;t tokeny</button>
+    {% if connected %}
+    <div class="status connected">Strava connected</div>
+    <p>Your activities are being fetched from Strava.</p>
+    <div class="admin-actions">
+      <form action="/admin/refresh" method="post">
+        <button class="btn btn-secondary">Sync latest rides</button>
       </form>
-
-    {% endif %}
-  </div>
-
-  <div class="admin-box" style="margin-top:1.5rem">
-    <h2>Strava archiv</h2>
-    {% if archive_count > 0 %}
-      <div class="status connected">Archiv na&#269;ten</div>
-      <p>{{ archive_count }} aktivit ze Stravy (do 15.&#160;8.&#160;2026) je ulo&#382;eno jako statick&#253; archiv.</p>
+      <form action="/admin/logout-strava" method="post">
+        <button class="btn btn-danger">Disconnect Strava</button>
+      </form>
+    </div>
     {% else %}
-      <div class="status disconnected">Archiv chyb&#237;</div>
-      <p>Klikni na tla&#269;&#237;tko n&#237;&#382;e &mdash; sta&#382;en&#253; soubor pak commitni do repozit&#225;&#345;e.</p>
-      <div class="admin-actions">
-        <a href="/admin/export-strava" class="btn btn-secondary">&#8595; St&#225;hnout Strava archiv</a>
-      </div>
-      <p style="margin-top:.75rem;font-size:.8rem;color:#555">Po sta&#382;en&#237;: <code>git add strava_archive.json &amp;&amp; git commit -m "Add Strava archive" &amp;&amp; git push</code></p>
-    {% endif %}
-  </div>
-
-  <div class="admin-box" style="margin-top:1.5rem">
-    <h2>Garmin archiv <span style="font-size:.8rem;font-weight:normal;color:#888">(od 16.&#160;8.&#160;2026)</span></h2>
-    {% if garmin_archive_count > 0 %}
-      <div class="status connected">Archiv na&#269;ten</div>
-      <p>{{ garmin_archive_count }} aktivit z Garminu je ulo&#382;eno jako statick&#253; archiv.</p>
-      <p style="font-size:.85rem;color:#aaa">Aktualizace: spus&#357; <code>python garmin_browser_export.py</code> lok&#225;ln&#283;, pak commitni a pushni <code>garmin_archive.json</code>.</p>
-    {% else %}
-      <div class="status disconnected">Archiv chyb&#237;</div>
-      <p style="font-size:.85rem;color:#aaa">Spus&#357; lok&#225;ln&#283;: <code>python garmin_browser_export.py</code><br>
-      Pak: <code>git add garmin_archive.json &amp;&amp; git commit -m "Add Garmin archive" &amp;&amp; git push</code></p>
+    <div class="status disconnected">Not connected</div>
+    <p>Connect your Strava account to start showing stats on the public page.</p>
+    <a href="{{ auth_url }}" class="btn btn-strava">Connect with Strava</a>
     {% endif %}
   </div>
 </body>

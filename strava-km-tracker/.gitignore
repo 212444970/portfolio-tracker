@@ -1,7 +1,5 @@
 .env
 tokens.json
-garmin_tokens.json
-garmin_tokens_export.json
 __pycache__/
 *.pyc
 public/

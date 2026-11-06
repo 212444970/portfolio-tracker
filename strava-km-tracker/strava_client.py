@@ -9,37 +9,11 @@ import token_store
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
 
-CATEGORY_MAP = {
-    "Ride": "road",
-    "GravelRide": "road",
-    "MountainBikeRide": "mtb",
-    "VirtualRide": "virtual",
-    "EBikeRide": "ebike",
-    "AlpineSki": "ski",
-    "NordicSki": "ski",
-    "BackcountrySki": "ski",
-    "Snowboard": "ski",
-    "Run": "run",
-    "TrailRun": "run",
-    "Hike": "hike",
-    "Walk": "hike",
-    "Swim": "swim",
-}
+# Activity types counted as cycling
+RIDE_TYPES = {"Ride", "VirtualRide", "EBikeRide", "GravelRide", "MountainBikeRide"}
 
-CATEGORY_LABELS = {
-    "road": "Silniční kolo",
-    "mtb": "Horské kolo",
-    "virtual": "Virtuální",
-    "ebike": "E-kolo",
-    "ski": "Lyže",
-    "run": "Běh",
-    "hike": "Turistika",
-    "swim": "Plavání",
-    "other": "Ostatní",
-}
-
-_cache = {"activities": None, "fetched_at": 0}
-CACHE_TTL = 300
+_cache = {"rides": None, "fetched_at": 0}
+CACHE_TTL = 300  # seconds
 
 
 def _refresh_token_if_needed(tokens):
@@ -77,8 +51,8 @@ def exchange_code(code):
     })
 
 
-def _fetch_all_activities(access_token):
-    activities = []
+def _fetch_all_rides(access_token):
+    rides = []
     page = 1
     while True:
         resp = requests.get(
@@ -89,54 +63,42 @@ def _fetch_all_activities(access_token):
         resp.raise_for_status()
         batch = resp.json()
         for a in batch:
-            sport = a.get("sport_type") or a.get("type", "")
-            km = round(a.get("distance", 0) / 1000, 2)
-            elev = round(a.get("total_elevation_gain", 0))
-            if km == 0 and elev == 0:
-                continue
-            cat = CATEGORY_MAP.get(sport, "other")
-            activities.append({
-                "name": a["name"],
-                "date": a["start_date_local"][:10],
-                "km": km,
-                "elevation": elev,
-                "moving_time": a.get("moving_time", 0),
-                "type": sport,
-                "category": cat,
-            })
+            if a.get("sport_type") in RIDE_TYPES and a.get("distance", 0) > 0:
+                rides.append({
+                    "name": a["name"],
+                    "date": a["start_date_local"][:10],
+                    "km": round(a["distance"] / 1000, 2),
+                    "type": a["sport_type"],
+                    "moving_time": a["moving_time"],
+                    "elevation": round(a.get("total_elevation_gain", 0)),
+                })
         if len(batch) < 200:
             break
         page += 1
-    return sorted(activities, key=lambda x: x["date"], reverse=True)
+    return sorted(rides, key=lambda x: x["date"], reverse=True)
 
 
-def get_activities(force=False):
+def get_rides(force=False):
     global _cache
-    if not force and _cache["activities"] is not None:
+    if not force and _cache["rides"] is not None:
         if time.time() - _cache["fetched_at"] < CACHE_TTL:
-            return _cache["activities"]
+            return _cache["rides"]
 
     tokens = token_store.load()
     if not tokens:
         return None
     tokens = _refresh_token_if_needed(tokens)
-    activities = _fetch_all_activities(tokens["access_token"])
-    _cache = {"activities": activities, "fetched_at": time.time()}
-    return activities
-
-
-def get_rides(force=False):
-    """Backward-compatible alias."""
-    return get_activities(force=force)
+    rides = _fetch_all_rides(tokens["access_token"])
+    _cache = {"rides": rides, "fetched_at": time.time()}
+    return rides
 
 
 def clear_cache():
     global _cache
-    _cache = {"activities": None, "fetched_at": 0}
+    _cache = {"rides": None, "fetched_at": 0}
 
 
-def compute_stats(activities):
-    """Basic stats for the JSON API endpoint."""
+def compute_stats(rides):
     now = datetime.now(timezone.utc)
     week_start = (now - timedelta(days=now.weekday())).replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -147,12 +109,17 @@ def compute_stats(activities):
     def parse(d):
         return datetime.fromisoformat(d).replace(tzinfo=timezone.utc)
 
+    total = sum(r["km"] for r in rides)
+    this_week = sum(r["km"] for r in rides if parse(r["date"]) >= week_start)
+    this_month = sum(r["km"] for r in rides if parse(r["date"]) >= month_start)
+    this_year = sum(r["km"] for r in rides if parse(r["date"]) >= year_start)
+
     return {
-        "total_km": round(sum(r["km"] for r in activities), 1),
-        "this_week_km": round(sum(r["km"] for r in activities if parse(r["date"]) >= week_start), 1),
-        "this_month_km": round(sum(r["km"] for r in activities if parse(r["date"]) >= month_start), 1),
-        "this_year_km": round(sum(r["km"] for r in activities if parse(r["date"]) >= year_start), 1),
-        "activity_count": len(activities),
+        "total": round(total, 1),
+        "this_week": round(this_week, 1),
+        "this_month": round(this_month, 1),
+        "this_year": round(this_year, 1),
+        "ride_count": len(rides),
     }
 
 
